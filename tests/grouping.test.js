@@ -107,3 +107,15 @@ test('recalage : garde-fous', () => {
   const forced = trueLoad({ gun, sight, load, met, dist: 600, dyM: -0.1, param: 'bc' });
   assert.equal(forced.param, 'bc'); assert.equal(forced.auto, 'v0');
 });
+
+test('recalage avec une hausse graduée : l’angle du cran reste fixe', () => {
+  const load = { bc: 0.495, model: 'G1', v0: 760, refTemp: 15, sens: 0, measured: false };
+  const g = { sightH: 0.028, zero: 100, twist: 240, twistDir: '?' }, iron = { kind: 'iron' };
+  const alpha = solve({ gun: { ...g, zero: 500 }, sight: iron, load, met, zeroMet: met, distances: [500] }).alpha; // cran 500
+  const y = (l) => solve({ gun: g, sight: iron, load: l, met, alpha, distances: [500] }).rows[0].dropM;
+  const dy = y({ ...load, v0: 740 }) - y(load);
+  const fixed = trueLoad({ gun: g, sight: iron, load, met, dist: 500, dyM: dy, alpha });
+  assert.ok(Math.abs(fixed.to - 740) < 0.5, String(fixed.to));
+  const rezero = trueLoad({ gun: g, sight: iron, load, met, dist: 500, dyM: dy });
+  assert.ok(Math.abs(rezero.to - 740) > 2, 'sans angle fixe, le recalage se trompe : ' + rezero.to);
+});

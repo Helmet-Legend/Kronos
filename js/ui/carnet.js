@@ -1,7 +1,8 @@
 // Carnet de séance : saisie des impacts, carnet de l'arme, recalage V0 / BC.
 import { h, fill } from './dom.js';
 import { num, int, dateFr } from './format.js';
-import { app, set, closeSheet, openSheet, toast, confirm, metForCalc, M } from '../app.js';
+import { app, set, closeSheet, openSheet, toast, confirm, metForCalc, compute, cranInfo, M } from '../app.js';
+import { cranAnglesCached } from '../engine/tangent.js';
 import { frame } from './sheets.js';
 import { tipCard } from './aide.js';
 import { groupStats, mpiUncertainty, turretClicks, coldBoreSummary, mmToMoa } from '../engine/grouping.js';
@@ -111,9 +112,11 @@ export function sessionSheet() {
     const g = groupStats(st.shots, st.coldFirst);
     if (!g || g.n < 3) { toast('Placez au moins 3 impacts'); return; }
     const n = st.shots.length;
+    // hausse graduée : on note le cran utilisé (choisi ou conseillé pour la distance de la séance)
+    const ci = cranInfo(app.state, compute(app.state, [st.dist]).args, gun, st.dist);
     set((s) => {
       const cur = M.activeGun(s);
-      return M.replaceGun(s, M.addSession(cur, { dist: st.dist, loadId: load.id, target: st.target, coldFirst: st.coldFirst, met: metForCalc(s), wind: { speed: s.shot.windSpeed, hour: s.shot.windHour }, shots: st.shots }));
+      return M.replaceGun(s, M.addSession(cur, { dist: st.dist, loadId: load.id, target: st.target, coldFirst: st.coldFirst, met: metForCalc(s), wind: { speed: s.shot.windSpeed, hour: s.shot.windHour }, cran: ci ? ci.used : null, shots: st.shots }));
     });
     if (st.photo) URL.revokeObjectURL(st.photo);
     toast('Séance enregistrée · +' + n + ' coups aux compteurs');
@@ -242,7 +245,15 @@ export function truingSheet(sessionId) {
     const src = sessions.find((x) => x.id === st.sessionId) || null;
     const srcStats = src ? sessionStats(src) : null;
     const met = src && src.met ? src.met : metForCalc(s);
-    const r = trueLoad({ gun: { sightH: gun.sightH, zero: gun.zero, twist: gun.twist, twistDir: gun.twistDir }, sight: gun.sight, load, met,
+    // hausse graduée : l'angle du cran utilisé reste fixe pendant le recalage
+    let alpha;
+    if (gun.sight.kind === 'iron' && gun.sight.tangent) {
+      const args = compute(s, [st.dist]).args;
+      const A = cranAnglesCached(args, gun.sight.tangent);
+      const cran = src && src.cran && A.has(src.cran) ? src.cran : cranInfo({ ...s, shot: { ...s.shot, cran: null } }, args, gun, st.dist).rec;
+      alpha = A.get(cran).alpha;
+    }
+    const r = trueLoad({ gun: { sightH: gun.sightH, zero: gun.zero, twist: gun.twist, twistDir: gun.twistDir }, sight: gun.sight, load, met, alpha,
       dist: st.dist, dyM: st.dyCm / 100, param: st.param, mpiErrM: srcStats ? mpiUncertainty(srcStats) / 1000 : undefined });
     const unit = gun.sight.kind === 'scope' ? gun.sight.unit : 'mrad', uf = unit === 'MOA' ? 1 / MOA_IN_MRAD : 1;
     const fmt = (p, v) => (v === null ? 'hors limites' : p === 'v0' ? int(v) + ' m/s' : num(v, 3));

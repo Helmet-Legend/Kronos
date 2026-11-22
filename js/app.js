@@ -12,7 +12,7 @@ import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 import { onboardingOverlay, helpSheet } from './ui/aide.js';
 
-const VERSION = '0.8.0';
+const VERSION = '0.8.1';
 
 export const app = {
   state: M.defaultState(),

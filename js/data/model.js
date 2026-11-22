@@ -80,6 +80,7 @@ export function addSession(gun, o) {
     target: o.target || 'GRID', coldFirst: !!o.coldFirst && shots.length >= 2,
     met: o.met ? { t: o.met.t, p: o.met.p, rh: o.met.rh } : null,
     wind: o.wind ? { speed: o.wind.speed, hour: o.wind.hour } : null,
+    cran: o.cran || null,
     shots
   };
   const g = addShots(gun, shots.length, 'séance', rec.d);
@@ -222,7 +223,8 @@ export function parseBackup(text) {
   }
   migrate(s);
   const d = defaultState();
-  return { ok: true, state: { ...d, ...s, settings: { ...d.settings, ...(s.settings || {}) }, shot: { ...d.shot, ...(s.shot || {}) }, met: { ...d.met, ...(s.met || {}) }, schema: SCHEMA } };
+  const known = s.settings && s.settings.onboardingDone === undefined ? { onboardingDone: true } : {};
+  return { ok: true, state: { ...d, ...s, settings: { ...d.settings, ...(s.settings || {}), ...known }, shot: { ...d.shot, ...(s.shot || {}) }, met: { ...d.met, ...(s.met || {}) }, schema: SCHEMA } };
 }
 
 /** Met un état d'une version antérieure au schéma courant (en place). */

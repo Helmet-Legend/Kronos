@@ -21,13 +21,14 @@ function yAt(base, load, d) {
  * @param {number} o.dyM écart vertical observé du point moyen (m, positif : plus haut que prévu)
  * @param {'auto'|'v0'|'bc'} [o.param] paramètre à ajuster ; auto : BC si la V0 est mesurée, sinon V0
  * @param {number} [o.mpiErrM] incertitude du point moyen (m), pour refuser un écart non significatif
+ * @param {number} [o.alpha] angle du canon imposé (rad) : hausse graduée, le cran garde son angle mécanique
  * @returns {{param:'v0'|'bc', auto:'v0'|'bc', from:number, to:number|null, warn:string|null, effect:null|{d:number,dyM:number,el1:number,el2:number}}}
  */
 export function trueLoad(o) {
   const { gun, sight, load, met, zeroMet, dist, dyM } = o;
   const auto = load.measured ? 'bc' : 'v0';
   const param = o.param && o.param !== 'auto' ? o.param : auto;
-  const base = { gun, sight, met, zeroMet };
+  const base = { gun, sight, met, zeroMet, alpha: o.alpha };
   const withP = (v) => (param === 'v0' ? { ...load, v0: v } : { ...load, bc: v });
   const from = param === 'v0' ? load.v0 : load.bc;
   const fn = (v) => yAt(base, withP(v), dist);
