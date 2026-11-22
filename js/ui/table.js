@@ -3,6 +3,7 @@ import { h } from './dom.js';
 import { num, abs, int } from './format.js';
 import { app, set, compute, cranInfo } from '../app.js';
 import { solve } from '../engine/solver.js';
+import { tipCard } from './aide.js';
 import { cranAnglesCached, cranTable } from '../engine/tangent.js';
 
 const setSettings = (o) => set((s) => ({ ...s, settings: { ...s.settings, ...o } }));
@@ -61,6 +62,7 @@ export function renderTable() {
   const profile = profileCard(s, gun, args);
   const chip = (label, on, fn) => h('button', { class: 'chip', 'aria-pressed': String(on), onClick: fn }, label);
   return h('main', { class: 'table' },
+    tipCard(['table']),
     h('div', { class: 'card' },
       h('div', { style: { fontWeight: '700' } }, gun.name + ' · ' + load.name),
       h('div', { class: 'muted', style: { fontSize: '13px', marginTop: '4px' } },

@@ -3,6 +3,7 @@ import { h, fill } from './dom.js';
 import { num, int, dateFr } from './format.js';
 import { app, set, closeSheet, openSheet, toast, confirm, metForCalc, M } from '../app.js';
 import { frame } from './sheets.js';
+import { tipCard } from './aide.js';
 import { groupStats, mpiUncertainty, turretClicks, coldBoreSummary, mmToMoa } from '../engine/grouping.js';
 import { TARGETS } from '../engine/targets.js';
 import { trueLoad, TRUE_MIN_DIST } from '../engine/truing.js';

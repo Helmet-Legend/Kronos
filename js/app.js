@@ -10,8 +10,9 @@ import { renderTable } from './ui/table.js';
 import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
+import { onboardingOverlay, helpSheet } from './ui/aide.js';
 
-const VERSION = '0.7.1';
+const VERSION = '0.8.0';
 
 export const app = {
   state: M.defaultState(),
@@ -35,13 +36,20 @@ export function set(fn) {
   if (next.guns !== prev.guns) next = { ...next, settings: { ...next.settings, changesSinceBackup: (next.settings.changesSinceBackup || 0) + 1 } };
   app.state = next;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => store.save(app.state), 250);
+  saveTimer = setTimeout(() => { saveTimer = null; store.save(app.state); }, 250);
   render();
 }
 
 /** Retour haptique bref (Android ; sans effet sur iPhone en application web). */
 export function buzz() {
   try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* ignoré */ }
+}
+
+/** Enregistre tout de suite une sauvegarde en attente (application masquée ou fermée). */
+function flushSave() {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  store.save(app.state);
 }
 
 export function ui(o) { Object.assign(app, o); render(); }
@@ -104,6 +112,7 @@ function header() {
     h('button', { class: 'profile', onClick: () => openSheet('profile', profileSheet), 'aria-label': 'Changer d’arme ou de munition' },
       h('span', { class: 'grow' }, h('b', null, g.name), h('small', null, l.name + ' · ' + sightTxt + (g.sight.kind === 'iron' && g.sight.tangent ? ' ' + g.sight.tangent.min + '–' + g.sight.tangent.max + ' m' : ' · zéro ' + g.zero + ' m'))),
       icon('down')),
+    h('button', { class: 'icon-btn', onClick: () => openSheet('help', helpSheet), 'aria-label': 'Aide', title: 'Aide' }, icon('help')),
     h('button', { class: 'icon-btn', onClick: () => set((x) => ({ ...x, settings: { ...x.settings, theme: th[0] } })), 'aria-label': th[2], title: th[2] }, icon(th[1]))
   );
 }
@@ -139,6 +148,7 @@ export function render() {
     h('div', { class: 'shell' }, header(), main),
     nav(),
     sheet,
+    onboardingOverlay(),
     app.toast ? h('div', { class: 'toast', role: 'status' }, app.toast) : null
   ].filter(Boolean));
   main.scrollTop = scroll;
@@ -150,12 +160,15 @@ export async function start() {
   const saved = await store.load();
   if (saved && Array.isArray(saved.guns) && saved.guns.length) {
     const d = M.defaultState();
-    app.state = M.migrate({ ...d, ...saved, settings: { ...d.settings, ...saved.settings }, shot: { ...d.shot, ...saved.shot }, met: { ...d.met, ...saved.met } });
+    // une installation existante a déjà vu l'application : pas d'accueil après la mise à jour
+    const known = saved.settings && saved.settings.onboardingDone === undefined ? { onboardingDone: true } : {};
+    app.state = M.migrate({ ...d, ...saved, settings: { ...d.settings, ...saved.settings, ...known }, shot: { ...d.shot, ...saved.shot }, met: { ...d.met, ...saved.met } });
   }
   render();
   store.persist().then((ok) => { app.persisted = ok; });
   requestWake();
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); else flushSave(); });
+  window.addEventListener('pagehide', flushSave);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }

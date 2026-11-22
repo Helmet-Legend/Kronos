@@ -5,6 +5,7 @@ import { app, set, closeSheet, openSheet, toast, M } from '../app.js';
 import { fetchMeteo, windHour } from '../data/meteo.js';
 import { AMMO, SIGHTS } from '../data/catalog.js';
 import { qnhFromStation, stationFromQnh } from '../engine/atmo.js';
+import { tipCard } from './aide.js';
 
 export function frame(title, ...body) {
   return h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
@@ -85,7 +86,7 @@ export function meteoSheet() {
   }
 
   return frame('Météo',
-    status, autoBtn,
+    tipCard(['meteo']), status, autoBtn,
     h('div', { class: 'muted', style: { fontSize: '12px' } }, 'Données Open-Meteo (CC BY 4.0). Hors ligne, saisissez les valeurs à la main.'),
     windBox,
     h('h2', null, 'Saisie manuelle'),

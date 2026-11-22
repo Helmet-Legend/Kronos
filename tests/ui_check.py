@@ -25,7 +25,22 @@ with sync_playwright() as p:
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
     page.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' else None)
-    page.goto(URL); page.wait_for_selector('.corr')
+    page.goto(URL); page.wait_for_selector('.onb')
+    # accueil du premier lancement : 3 écrans
+    assert 'Kronos' in page.inner_text('.onb')
+    shot(page, '00-accueil')
+    page.locator('.onb').get_by_role('button', name='Suivant').click()
+    page.locator('.onb').get_by_role('button', name='Explorer avec les exemples').click()
+    assert 'Vos données restent ici' in page.inner_text('.onb')
+    page.locator('.onb').get_by_role('button', name='C’est parti').click()
+    assert page.locator('.onb').count() == 0
+    # bulles : la première de l'écran Tir, puis la suivante après « Compris »
+    assert 'Lire le poste de tir' in page.inner_text('.tip')
+    page.locator('.tip').get_by_role('button', name='Compris').click()
+    assert 'Zone probable' in page.inner_text('.tip')
+    page.locator('.tip').get_by_role('button', name='Masquer toutes les bulles').click()
+    assert page.locator('.tip').count() == 0
+    page.wait_for_selector('.corr')
     assert 'clics HAUT' in page.inner_text('.hero'), page.inner_text('.hero')
     assert 'cm vertical' in page.inner_text('.conf') and 'Arme' in page.inner_text('.conf'), 'zone probable absente'
     shot(page, '01-tir')
@@ -156,6 +171,13 @@ with sync_playwright() as p:
     assert '1 séance' in page.inner_text('.sheet') or '1 séance(s)' in page.inner_text('.sheet'), page.inner_text('.sheet')
     page.locator('.sheet').get_by_role('button', name='Restaurer').click()
     assert 'Sauvegarde restaurée' in page.inner_text('.toast')
+    # aide : réafficher les bulles et revoir l'accueil
+    page.get_by_role('button', name='Aide').click(); page.wait_for_selector('.sheet h3:has-text("Aide")')
+    assert 'Toutes les explications'.upper() in page.inner_text('.sheet').upper()
+    page.get_by_role('button', name='Revoir l’accueil').click(); page.wait_for_selector('.onb')
+    page.locator('.onb').get_by_role('button', name='Passer').click()
+    assert page.locator('.onb').count() == 0
+    page.wait_for_timeout(400)  # sauvegarde différée
     # service worker
     page.set_viewport_size({'width': 390, 'height': 844}); page.goto(URL); page.wait_for_timeout(800)
     sw = page.evaluate('navigator.serviceWorker.getRegistration().then(r => !!r)')

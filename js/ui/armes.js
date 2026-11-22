@@ -9,6 +9,7 @@ import { mmToMoa } from '../engine/grouping.js';
 import { backupBanner } from './reglages.js';
 import { hausseCard } from './hausse.js';
 import { chronoSheet } from './chrono.js';
+import { tipCard } from './aide.js';
 
 const TWIST = { R: 'à droite', L: 'à gauche', '?': 'sens inconnu' };
 
@@ -20,6 +21,7 @@ export function renderArmes() {
 
 function gunList(s) {
   return h('main', null,
+    tipCard(['arm']),
     backupBanner(),
     s.guns.map((g) => {
       const l = M.activeLoad(g);
@@ -72,6 +74,7 @@ function gunDetail(g) {
       kv('Stabilité (Miller)', h('span', { style: { color: sgCol, fontWeight: '700' } }, sgTxt)),
       carnetCard(g, l)),
 
+    tipCard(['ent']),
     h('section', { class: 'card' },
       h('span', { class: 'label' }, 'Compteur de coups'),
       h('div', { class: 'grid2', style: { margin: '8px 0' } },

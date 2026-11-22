@@ -6,6 +6,7 @@ import { solve } from '../engine/solver.js';
 import { meteoSheet, shotsSheet } from './sheets.js';
 import { sessionSheet, coldAdvice } from './carnet.js';
 import { confidence } from '../engine/confidence.js';
+import { tipCard } from './aide.js';
 
 const setShot = (o) => { buzz(); set((s) => ({ ...s, shot: { ...s.shot, ...o } })); };
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -143,5 +144,5 @@ export function renderTir() {
     h('button', { class: 'btn', 'aria-label': 'Saisir une séance', style: { borderColor: 'var(--amber)', color: 'var(--amber)' }, onClick: () => openSheet('session', sessionSheet) }, h('span', { class: 'lg' }, 'Saisir une séance'), h('span', { class: 'sm' }, 'Séance')),
     h('button', { class: 'btn', 'aria-label': 'Compter des coups', onClick: () => openSheet('shots', shotsSheet) }, h('span', { class: 'lg' }, 'Compter des coups'), h('span', { class: 'sm' }, 'Coups')));
 
-  return h('main', { class: 'tir' }, metPill, hero, stats, confCard, dist, wind, angle, notes.length ? h('div', { class: 'c-notes', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, notes) : null, actions);
+  return h('main', { class: 'tir' }, tipCard(['hud', 'zone', 'wind']), metPill, hero, stats, confCard, dist, wind, angle, notes.length ? h('div', { class: 'c-notes', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, notes) : null, actions);
 }
