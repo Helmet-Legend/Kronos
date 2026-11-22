@@ -32,7 +32,7 @@ export function defaultState() {
     guns: [
       { id: 'arme_tld', name: 'Carabine .308', cal: '.308 Winchester', barrelMm: 610, twist: 279, twistDir: 'R', sight: { kind: 'scope', unit: 'MRAD', click: 0.1 }, sightH: 0.045, zero: 100,
         loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 1 },
-      { id: 'arme_k98', name: 'Mauser K98k', cal: '7,92x57 IS', barrelMm: 600, twist: 240, twistDir: 'R', sight: { kind: 'iron' }, sightH: 0.028, zero: 100,
+      { id: 'arme_k98', name: 'Mauser K98k', cal: '7,92x57 IS', barrelMm: 600, twist: 240, twistDir: 'R', sight: { kind: 'iron', tangent: { min: 100, max: 2000, step: 100, crans: {} } }, sightH: 0.028, zero: 100,
         loads: [ss], loadId: ss.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 3 }
     ],
     gunId: 'arme_tld',
@@ -89,6 +89,24 @@ export function addSession(gun, o) {
 /** Supprime une séance du carnet (les coups restent comptés : le compteur ne baisse jamais). */
 export function removeSession(gun, id) {
   return { ...gun, sessions: (gun.sessions || []).filter((x) => x.id !== id) };
+}
+
+/* ---------- Hausse graduée ---------- */
+
+/** Enregistre l'angle réel mesuré d'un cran. */
+export function setCranAngle(gun, cran, o) {
+  const t = gun.sight.tangent;
+  if (!t) return gun;
+  const entry = { mrad: Math.round(o.mrad * 10000) / 10000, d: o.d || todayIso(), dist: o.dist, offCm: o.offCm };
+  return { ...gun, sight: { ...gun.sight, tangent: { ...t, crans: { ...(t.crans || {}), [String(cran)]: entry } } } };
+}
+
+/** Remet un cran en « calculé ». */
+export function clearCranAngle(gun, cran) {
+  const t = gun.sight.tangent;
+  if (!t || !t.crans) return gun;
+  const crans = { ...t.crans }; delete crans[String(cran)];
+  return { ...gun, sight: { ...gun.sight, tangent: { ...t, crans } } };
 }
 
 /* ---------- Recalage ---------- */
@@ -153,6 +171,8 @@ export function checkGun(g) {
   if (!num(g.zero, 10, 1000)) e.push('Distance de zéro entre 10 et 1000 m');
   if (!num(g.twist, 100, 1000)) e.push('Pas de rayure entre 100 et 1000 mm');
   if (g.sight.kind === 'scope' && !num(g.sight.click, 0.01, 1)) e.push('Valeur de clic entre 0,01 et 1');
+  const t = g.sight.kind === 'iron' && g.sight.tangent;
+  if (t && !(num(t.min, 25, 2500) && num(t.max, t.min, 2500) && num(t.step, 25, 500) && (t.max - t.min) / t.step <= 100)) e.push('Crans de hausse : du premier au dernier entre 25 et 2500 m, pas de 25 à 500 m');
   if (g.dispersionMoa !== undefined && !num(g.dispersionMoa, 0.2, 10)) e.push('Dispersion entre 0,2 et 10 MOA');
   return e;
 }

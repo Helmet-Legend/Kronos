@@ -1,5 +1,5 @@
 """Parcours de l'interface dans Chrome sans écran (Playwright). Usage : python3 tests/ui_check.py [dossier_captures]"""
-import sys, threading, http.server, socketserver, functools, os
+import sys, threading, http.server, socketserver, functools, os, re
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,6 +13,10 @@ URL = f'http://127.0.0.1:{port}/'
 errors = []
 
 def shot(page, name):
+    # aucun texte technique ne doit apparaître à l'écran
+    t = page.inner_text('#app')
+    m = re.search(r'.{0,30}\b(null|undefined|NaN)\b.{0,30}', t)
+    if m: errors.append(name + ' : texte suspect « ' + m.group(0) + ' »')
     if OUT: page.screenshot(path=os.path.join(OUT, name + '.png'))
 
 with sync_playwright() as p:
@@ -85,8 +89,23 @@ with sync_playwright() as p:
     assert 'MAS 36' in page.inner_text('main')
     # tir avec visée mécanique
     page.locator('nav.tabs button', has_text='Tir').click()
-    assert 'TENUE VERTICALE' in page.inner_text('.hero').upper(), page.inner_text('.profile') + ' | ' + page.inner_text('.hero')
+    assert 'CRAN DE HAUSSE' in page.inner_text('.hero').upper(), page.inner_text('.profile') + ' | ' + page.inner_text('.hero')
     shot(page, '05-tir-iron')
+    # hausse graduée : cran suivant, table avec colonne Cran, étalonnage d'un cran
+    c0 = page.inner_text('.hero .corr .val')
+    page.get_by_role('button', name='Cran suivant').click(); assert page.inner_text('.hero .corr .val') != c0
+    page.get_by_role('button', name='Auto').click()
+    page.locator('nav.tabs button', has_text='Table').click(); page.wait_for_selector('.ttable')
+    assert 'Cran' in page.inner_text('.ttable thead')
+    page.locator('nav.tabs button', has_text='Armes').click(); page.locator('main .item', has_text='MAS 36').click()
+    page.get_by_role('button', name='Étalonner un cran').click(); page.wait_for_selector('.sheet h3:has-text("Étalonner")')
+    page.get_by_role('button', name='Plus 5 cm').click()
+    page.get_by_role('button', name='Enregistrer l’angle réel du cran').click()
+    assert 'étalonné' in page.inner_text('.toast')
+    shot(page, '11-etalonnage')
+    page.get_by_role('button', name='Fermer').click()
+    assert 'MESURÉ' in page.inner_text('.crans') and 'AJUSTÉ' in page.inner_text('.crans')
+    page.locator('nav.tabs button', has_text='Tir').click()
     # persistance après rechargement
     page.wait_for_timeout(400); page.reload(); page.wait_for_selector('.corr')
     assert 'MAS 36' in page.inner_text('.profile'), 'données non conservées'

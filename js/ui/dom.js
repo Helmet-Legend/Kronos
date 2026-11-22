@@ -20,6 +20,13 @@ export function h(tag, props, ...children) {
   return el;
 }
 
+/** Remplace les enfants d'un élément (null, false et tableaux acceptés, comme h()). */
+export function fill(el, ...children) {
+  el.replaceChildren();
+  append(el, children);
+  return el;
+}
+
 function append(el, children) {
   for (const c of children) {
     if (c === null || c === undefined || c === false) continue;

@@ -7,6 +7,7 @@ import { millerSg } from '../engine/solver.js';
 import { carnetSheet, sessionStats } from './carnet.js';
 import { mmToMoa } from '../engine/grouping.js';
 import { backupBanner } from './reglages.js';
+import { hausseCard } from './hausse.js';
 
 const TWIST = { R: 'à droite', L: 'à gauche', '?': 'sens inconnu' };
 
@@ -51,7 +52,10 @@ function gunDetail(g) {
       kv('Pas de rayure', int(g.twist) + ' mm · ' + TWIST[g.twistDir]),
       kv('Visée', sightTxt),
       kv('Hauteur de visée', int(g.sightH * 1000) + ' mm'),
-      kv('Zéro', g.zero + ' m')),
+      g.sight.kind === 'iron' && g.sight.tangent ? kv('Hausse', 'graduée de ' + g.sight.tangent.min + ' à ' + g.sight.tangent.max + ' m') : kv('Zéro', g.zero + ' m'),
+      kv('Dispersion arme + tireur', num(g.dispersionMoa ?? 1.5, 1) + ' MOA')),
+
+    g.sight.kind === 'iron' && g.sight.tangent ? hausseCard(g) : null,
 
     h('section', { class: 'card' },
       h('div', { class: 'row' }, h('span', { class: 'label grow' }, 'Munitions')),

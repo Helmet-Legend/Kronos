@@ -33,7 +33,7 @@ export function profileSheet() {
   return frame('Arme et munition',
     h('h2', null, 'Arme'),
     s.guns.map((g) => h('button', { class: 'item' + (g.id === s.gunId ? ' on' : ''), onClick: () => { app.sheetEl = null; set((x) => ({ ...x, gunId: g.id })); } },
-      h('span', { class: 'grow' }, h('b', null, g.name), h('small', null, (g.cal || 'calibre ?') + ' · ' + (g.sight.kind === 'scope' ? 'lunette ' + g.sight.unit : 'visée mécanique') + ' · zéro ' + g.zero + ' m')))),
+      h('span', { class: 'grow' }, h('b', null, g.name), h('small', null, (g.cal || 'calibre ?') + ' · ' + (g.sight.kind === 'scope' ? 'lunette ' + g.sight.unit + ' · zéro ' + g.zero + ' m' : g.sight.tangent ? 'hausse graduée ' + g.sight.tangent.min + '–' + g.sight.tangent.max + ' m' : 'visée mécanique · zéro ' + g.zero + ' m'))))),
     h('h2', null, 'Munition'),
     M.activeGun(s).loads.map((l) => h('button', { class: 'item' + (l.id === M.activeGun(s).loadId ? ' on' : ''), onClick: () => { set((x) => M.replaceGun(x, { ...M.activeGun(x), loadId: l.id })); closeSheet(); } },
       h('span', { class: 'grow' }, h('b', null, l.name), h('small', null, l.model + ' ' + num(l.bc, 3) + ' · ' + int(l.v0) + ' m/s' + (l.measured ? ' mesurée' : ' annoncée'))))),
@@ -128,18 +128,30 @@ export function gunSheet(gunId) {
   const click = field('Valeur d’un clic', g.sight.click ?? 0.1, { help: 'MRAD : souvent 0,1 · MOA : souvent 0,25 (1/4) ou 0,125 (1/8)' });
   const sightH = field('Hauteur de visée (mm)', Math.round(g.sightH * 1000), { help: 'Du centre du canon au centre de la lunette ou du guidon' });
   const zero = field('Distance de zéro (m)', g.zero);
+  const tg = g.sight.tangent || null;
+  const tKind = select('Hausse', tg ? 'grad' : 'fixe', [['fixe', 'Fixe (un seul réglage, zéro ci-dessous)'], ['grad', 'Graduée (tangentielle, curseur, dioptre à crans)']]);
+  const tMin = field('Premier cran (m)', tg ? tg.min : 100), tMax = field('Dernier cran (m)', tg ? tg.max : 2000), tStep = field('Écart entre crans (m)', tg ? tg.step : 100);
+  const tBox = h('div', { class: 'grid3' }, tMin.el, tMax.el, tStep.el);
   const disp = field('Dispersion arme + tireur (MOA)', g.dispersionMoa ?? 1.5, { help: 'Votre groupement habituel à 100 m en MOA (1 MOA ≈ 2,9 cm). Sert à la zone probable d’impact.' });
   const presets = h('div', { class: 'chips' }, SIGHTS.map((p) => h('button', { class: 'chip', type: 'button', onClick: () => {
-    kind.sel.value = p.kind; if (p.unit) unit.sel.value = p.unit; if (p.click) click.input.value = String(p.click).replace('.', ','); sightH.input.value = String(Math.round(p.sightH * 1000)); sync();
+    kind.sel.value = p.kind; if (p.unit) unit.sel.value = p.unit; if (p.click) click.input.value = String(p.click).replace('.', ','); sightH.input.value = String(Math.round(p.sightH * 1000));
+    if (p.kind === 'iron') { tKind.sel.value = p.tangent ? 'grad' : 'fixe'; if (p.tangent) { tMin.input.value = String(p.tangent.min); tMax.input.value = String(p.tangent.max); tStep.input.value = String(p.tangent.step); } }
+    sync();
   } }, p.name)));
   const scopeBox = h('div', { class: 'grid2' }, unit.el, click.el);
-  const sync = () => { scopeBox.style.display = kind.get() === 'scope' ? '' : 'none'; };
-  kind.sel.addEventListener('change', sync); sync();
+  const sync = () => {
+    const iron = kind.get() === 'iron';
+    scopeBox.style.display = iron ? 'none' : '';
+    tKind.el.style.display = iron ? '' : 'none';
+    tBox.style.display = iron && tKind.get() === 'grad' ? '' : 'none';
+  };
+  kind.sel.addEventListener('change', sync); tKind.sel.addEventListener('change', sync); sync();
   const errors = h('div', { class: 'errors', role: 'alert' });
 
   const save = () => {
     const ng = { ...g, name: name.get(), cal: cal.get(), barrelMm: barrel.get(), twist: twist.get(), twistDir: dir.get(),
-      sight: kind.get() === 'scope' ? { kind: 'scope', unit: unit.get(), click: click.get() } : { kind: 'iron' },
+      sight: kind.get() === 'scope' ? { kind: 'scope', unit: unit.get(), click: click.get() }
+        : tKind.get() === 'grad' ? { kind: 'iron', tangent: { min: tMin.get(), max: tMax.get(), step: tStep.get(), crans: (tg && tg.crans) || {} } } : { kind: 'iron' },
       sightH: sightH.get() / 1000, zero: zero.get(), dispersionMoa: disp.get() };
     const e = M.checkGun(ng);
     if (e.length) { errors.textContent = e.join(' · '); return; }
@@ -149,7 +161,7 @@ export function gunSheet(gunId) {
   };
   return frame(isNew ? 'Nouvelle arme' : 'Modifier l’arme',
     name.el, cal.el, h('div', { class: 'grid2' }, barrel.el, twist.el), dir.el,
-    h('h2', null, 'Visée'), presets, kind.el, scopeBox, h('div', { class: 'grid2' }, sightH.el, zero.el), disp.el,
+    h('h2', null, 'Visée'), presets, kind.el, scopeBox, tKind.el, tBox, h('div', { class: 'grid2' }, sightH.el, zero.el), disp.el,
     errors, h('button', { class: 'btn primary block', onClick: save }, 'Enregistrer'));
 }
 

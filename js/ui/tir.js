@@ -1,7 +1,8 @@
 // Écran Tir : corrections pour la distance et le vent du moment.
 import { h } from './dom.js';
 import { num, abs, int, timeFr, parseNum } from './format.js';
-import { app, set, compute, openSheet, ui } from '../app.js';
+import { app, set, compute, cranInfo, openSheet, ui } from '../app.js';
+import { solve } from '../engine/solver.js';
 import { meteoSheet, shotsSheet } from './sheets.js';
 import { sessionSheet, coldAdvice } from './carnet.js';
 import { confidence } from '../engine/confidence.js';
@@ -11,7 +12,11 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 export function renderTir() {
   const s = app.state, sh = s.shot;
-  const { gun, load, res, args } = compute(s, [sh.dist]);
+  const cmp = compute(s, [sh.dist]);
+  const { gun, load } = cmp;
+  let { res, args } = cmp;
+  const ci = cranInfo(s, args, gun, sh.dist);
+  if (ci && ci.alpha !== null) { args = { ...args, alpha: ci.alpha }; res = solve({ ...args, distances: [sh.dist] }); }
   const r = res.rows[0];
   const scope = gun.sight.kind === 'scope';
   const unit = scope ? gun.sight.unit : 'mrad';
@@ -39,6 +44,26 @@ export function renderTir() {
         h('span', { class: 'val mono' }, abs(r.wd, 1), h('small', null, ' ' + unit)),
         h('span', { class: 'clk mono' }, Math.abs(r.wdClicks) + ' clics ' + wdDir),
         h('span', { class: 'alt' }, 'vent ' + abs(r.windM * 100, 0) + ' cm' + (res.spinKnown ? ' · gyro ' + abs(r.spinM * 100, 0) + ' cm' : ' · pas inconnu'))));
+  } else if (ci) {
+    const up = -r.dropM * 100, side = -r.driftM * 100;
+    const i = ci.list.indexOf(ci.used);
+    const pickCran = (c) => setShot({ cran: c });
+    const ST = { meas: 'mesuré', adj: 'ajusté', calc: 'calculé' };
+    hero = h('div', { class: 'hero c-hero' },
+      h('section', { class: 'corr', 'aria-label': 'Cran de hausse et tenue verticale' },
+        h('span', { class: 'label' }, 'Cran de hausse'),
+        h('span', { class: 'val mono' }, String(ci.used), h('small', null, ' m')),
+        h('span', { class: 'clk' }, Math.abs(up) < 1 ? 'au point' : 'viser ' + abs(up, 0) + ' cm ' + (up > 0 ? 'HAUT' : 'BAS')),
+        h('span', { class: 'alt' }, (ci.used === ci.rec ? 'conseillé' : 'choisi · conseillé ' + ci.rec) + ' · cran ' + ST[ci.st]),
+        h('div', { class: 'cran-btns' },
+          h('button', { class: 'mini', 'aria-label': 'Cran précédent', disabled: i <= 0 ? true : null, onClick: () => pickCran(ci.list[i - 1]) }, '−'),
+          h('button', { class: 'mini', 'aria-pressed': String(!s.shot.cran), onClick: () => pickCran(null) }, 'Auto'),
+          h('button', { class: 'mini', 'aria-label': 'Cran suivant', disabled: i >= ci.list.length - 1 ? true : null, onClick: () => pickCran(ci.list[i + 1]) }, '+'))),
+      h('section', { class: 'corr wd' },
+        h('span', { class: 'label' }, 'Tenue latérale'),
+        h('span', { class: 'val mono' }, abs(side, 0), h('small', null, ' cm')),
+        h('span', { class: 'clk' }, Math.abs(side) < 1 ? 'au point' : 'viser à ' + (side > 0 ? 'DROITE' : 'GAUCHE')),
+        h('span', { class: 'alt' }, 'vent ' + abs(r.windM * 100, 0) + ' cm')));
   } else {
     const up = -r.dropM * 100, side = -r.driftM * 100;
     hero = h('div', { class: 'hero c-hero' },

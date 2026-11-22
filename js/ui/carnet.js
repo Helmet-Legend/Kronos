@@ -1,5 +1,5 @@
 // Carnet de séance : saisie des impacts, carnet de l'arme, recalage V0 / BC.
-import { h } from './dom.js';
+import { h, fill } from './dom.js';
 import { num, int, dateFr } from './format.js';
 import { app, set, closeSheet, openSheet, toast, confirm, metForCalc, M } from '../app.js';
 import { frame } from './sheets.js';
@@ -124,7 +124,7 @@ export function sessionSheet() {
     const g = groupStats(st.shots, st.coldFirst);
     const n = st.shots.length;
     const hint = n === 0 ? 'Touchez le centre de chaque trou, dans l’ordre des tirs.' : n < 3 ? 'Encore ' + plural(3 - n, 'impact') + ' au minimum.' : plural(n, 'impact') + ' · ' + (adjustTxt(gun, g, st.dist) || '');
-    body.replaceChildren(
+    fill(body, 
       h('div', { class: 'muted', style: { fontSize: '13px' } }, gun.name + ' · ' + load.name + ' · ' + num(s0.met.t, 0) + ' °C · vent ' + num(s0.shot.windSpeed, 1) + ' m/s de ' + s0.shot.windHour + ' h'),
       h('div', { class: 'row' },
         h('div', { class: 'grow' }, h('span', { class: 'label' }, 'Distance'), h('div', { class: 'mono', style: { fontSize: '22px', fontWeight: '700' } }, st.dist + ' m')),
@@ -261,7 +261,7 @@ export function truingSheet(sessionId) {
       st.dyCm = 0; st.sessionId = null; draw();
     };
 
-    body.replaceChildren(
+    fill(body, 
       h('p', { style: { margin: '0', fontSize: '14px', lineHeight: '1.5' } }, 'Si vos impacts tombent plus haut ou plus bas que prévu à longue distance, Kronos ajuste la V0 ou le BC de ' + load.name + ' pour que le calcul retombe sur votre point moyen.'),
       sessions.length ? h('div', null, h('span', { class: 'label' }, 'À partir d’une séance'),
         h('div', { class: 'chips', style: { marginTop: '6px' } }, sessions.slice(-4).reverse().map((x) => {

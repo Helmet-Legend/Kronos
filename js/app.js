@@ -4,13 +4,14 @@ import * as store from './data/store.js';
 import * as M from './data/model.js';
 import { solve } from './engine/solver.js';
 import { stationFromQnh } from './engine/atmo.js';
+import { cranAnglesCached, cranTable } from './engine/tangent.js';
 import { renderTir } from './ui/tir.js';
 import { renderTable } from './ui/table.js';
 import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 export const app = {
   state: M.defaultState(),
@@ -63,6 +64,21 @@ export function compute(s, distances) {
   return { gun: g, load: l, args, res: solve({ ...args, distances }) };
 }
 
+/**
+ * Hausse graduée : angles des crans, cran conseillé pour la distance d et cran utilisé (choisi ou conseillé).
+ * Renvoie null si l'arme n'a pas de hausse graduée.
+ */
+export function cranInfo(s, args, gun, d) {
+  const t = gun.sight.kind === 'iron' && gun.sight.tangent;
+  if (!t) return null;
+  const angles = cranAnglesCached(args, t);
+  if (!angles.size) return null;
+  const best = cranTable(args, angles, [d])[0];
+  const rec = best ? best.cran : null;
+  const used = s.shot.cran && angles.has(s.shot.cran) ? s.shot.cran : rec;
+  return { angles, list: [...angles.keys()], rec, used, alpha: used !== null ? angles.get(used).alpha : null, st: used !== null ? angles.get(used).st : 'calc' };
+}
+
 /* ---------- Écran toujours allumé (Wake Lock) ---------- */
 async function requestWake() {
   if (!app.state.settings.wakeLock || app.view !== 'tir' || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
@@ -77,11 +93,11 @@ const THEMES = { dark: ['light', 'sun', 'Passer en thème clair'], light: ['nigh
 
 function header() {
   const s = app.state, g = M.activeGun(s), l = M.activeLoad(g);
-  const sightTxt = g.sight.kind === 'scope' ? g.sight.unit + ' ' + String(g.sight.click).replace('.', ',') : 'visée mécanique';
+  const sightTxt = g.sight.kind === 'scope' ? g.sight.unit + ' ' + String(g.sight.click).replace('.', ',') : g.sight.tangent ? 'hausse graduée' : 'visée mécanique';
   const th = THEMES[s.settings.theme] || THEMES.dark;
   return h('header', { class: 'top' },
     h('button', { class: 'profile', onClick: () => openSheet('profile', profileSheet), 'aria-label': 'Changer d’arme ou de munition' },
-      h('span', { class: 'grow' }, h('b', null, g.name), h('small', null, l.name + ' · ' + sightTxt + ' · zéro ' + g.zero + ' m')),
+      h('span', { class: 'grow' }, h('b', null, g.name), h('small', null, l.name + ' · ' + sightTxt + (g.sight.kind === 'iron' && g.sight.tangent ? ' ' + g.sight.tangent.min + '–' + g.sight.tangent.max + ' m' : ' · zéro ' + g.zero + ' m'))),
       icon('down')),
     h('button', { class: 'icon-btn', onClick: () => set((x) => ({ ...x, settings: { ...x.settings, theme: th[0] } })), 'aria-label': th[2], title: th[2] }, icon(th[1]))
   );

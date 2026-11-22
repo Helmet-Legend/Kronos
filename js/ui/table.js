@@ -2,6 +2,7 @@
 import { h } from './dom.js';
 import { num, abs, int } from './format.js';
 import { app, set, compute } from '../app.js';
+import { cranAnglesCached, cranTable } from '../engine/tangent.js';
 
 const setSettings = (o) => set((s) => ({ ...s, settings: { ...s.settings, ...o } }));
 
@@ -9,17 +10,30 @@ export function renderTable() {
   const s = app.state, st = s.settings;
   const ds = [];
   for (let d = st.tableFrom; d <= st.tableTo; d += st.tableStep) ds.push(d);
-  const { gun, load, res } = compute(s, ds);
+  const { gun, load, res, args } = compute(s, ds);
   const scope = gun.sight.kind === 'scope';
+  const tg = !scope && gun.sight.tangent ? cranTable(args, cranAnglesCached(args, gun.sight.tangent), ds) : null;
   const unit = scope ? gun.sight.unit : '';
   const near = ds.reduce((b, d) => (Math.abs(d - s.shot.dist) < Math.abs(b - s.shot.dist) ? d : b), ds[0]);
   const dirV = (v) => (v >= 0 ? '↑' : '↓'), dirH = (v) => (v >= 0 ? '→' : '←');
 
   const head = scope
     ? ['m', 'Élév. ' + unit, 'clics', 'Dérive ' + unit, 'clics', 'cm', 'm/s', 's']
-    : ['m', 'Viser cm', '', 'Latéral cm', '', 'chute cm', 'm/s', 's'];
+    : tg ? ['m', 'Cran', 'Viser cm', 'Latéral cm', 'm/s', 's'] : ['m', 'Viser cm', '', 'Latéral cm', '', 'chute cm', 'm/s', 's'];
 
-  const rows = res.rows.map((r) => {
+  const rows = tg ? tg.map((b, i) => {
+    const d = ds[i];
+    if (!b) return h('tr', null, h('td', null, String(d)), h('td', { colspan: '5', class: 'muted' }, 'hors de portée'));
+    const r = b.row;
+    const cls = [d === near ? 'cur' : '', r.regime === 'trans' ? 'trans' : r.regime === 'sub' ? 'sub' : ''].join(' ').trim();
+    return h('tr', { class: cls || null },
+      h('td', { class: 'mono' }, String(d)),
+      h('td', { class: 'mono' }, String(b.cran) + (b.st === 'meas' ? ' ✓' : '')),
+      h('td', { class: 'mono el' }, Math.abs(r.dropM) < 0.005 ? '0' : abs(r.dropM * 100, 0) + ' ' + (r.dropM <= 0 ? '↑' : '↓')),
+      h('td', { class: 'mono wd' }, abs(r.driftM * 100, 0) + ' ' + (r.driftM <= 0 ? '→' : '←')),
+      h('td', { class: 'mono' }, int(r.v)),
+      h('td', { class: 'mono' }, num(r.t, 2)));
+  }) : res.rows.map((r) => {
     if (!r.reached) return h('tr', null, h('td', null, String(r.d)), h('td', { colspan: '7', class: 'muted' }, 'hors de portée'));
     const cls = [r.d === near ? 'cur' : '', r.regime === 'trans' ? 'trans' : r.regime === 'sub' ? 'sub' : ''].join(' ').trim();
     return scope
@@ -57,5 +71,5 @@ export function renderTable() {
         h('thead', null, h('tr', null, head.map((x) => h('th', { scope: 'col' }, x)))),
         h('tbody', null, rows))),
     h('p', { class: 'muted', style: { fontSize: '12px', margin: '0 2px', lineHeight: '1.5' } },
-      'Ligne surlignée : distance de l’écran Tir. Repère orange : transsonique (Mach 1 à 1,2) ; rouge : subsonique. ' + (scope ? 'Flèches : sens de la correction à la tourelle.' : 'Flèches : où viser par rapport au centre.')));
+      'Ligne surlignée : distance de l’écran Tir. Repère orange : transsonique (Mach 1 à 1,2) ; rouge : subsonique. ' + (scope ? 'Flèches : sens de la correction à la tourelle.' : tg ? 'Cran conseillé pour chaque distance et tenue restante (flèche : où viser). ✓ : cran mesuré au tir.' : 'Flèches : où viser par rapport au centre.')));
 }

@@ -149,17 +149,21 @@ export function muzzleVelocity(load, tempC) {
  * @param {object} [args.zeroMet] conditions du réglage du zéro (défaut : ICAO)
  * @param {object} args.shot { windSpeed (m/s), windHour, angleDeg }
  * @param {number[]} args.distances distances demandées (m)
+ * @param {number} [args.alpha] angle du canon imposé (rad), par exemple celui d'un cran de hausse : pas de calcul de zéro
  */
-export function solve({ gun, sight, load, met, zeroMet, shot, distances }) {
+export function solve({ gun, sight, load, met, zeroMet, shot, distances, alpha: alphaIn }) {
   const zm = zeroMet || ICAO;
-  const az = air(zm.t, zm.p, zm.rh);
-  const v0z = muzzleVelocity(load, zm.t);
-  const alpha = zeroAngle({ v0: v0z, bc: load.bc, model: load.model, rho: az.rho, c: az.c, h: gun.sightH, tK: zm.t + 273.15 }, gun.zero);
+  let alpha = alphaIn;
+  if (alpha === undefined || alpha === null) {
+    const az = air(zm.t, zm.p, zm.rh);
+    const v0z = muzzleVelocity(load, zm.t);
+    alpha = zeroAngle({ v0: v0z, bc: load.bc, model: load.model, rho: az.rho, c: az.c, h: gun.sightH, tK: zm.t + 273.15 }, gun.zero);
+  }
 
   const a = air(met.t, met.p, met.rh);
   const v0 = muzzleVelocity(load, met.t);
-  const w = windComponents(shot.windSpeed || 0, shot.windHour || 12);
-  const theta = (shot.angleDeg || 0) * Math.PI / 180;
+  const w = windComponents((shot && shot.windSpeed) || 0, (shot && shot.windHour) || 12);
+  const theta = ((shot && shot.angleDeg) || 0) * Math.PI / 180;
   const marks = [...new Set(distances.filter((d) => d > 0))].sort((p, q) => p - q);
   const raw = trajectory({ v0, bc: load.bc, model: load.model, rho: a.rho, c: a.c, h: gun.sightH, tK: met.t + 273.15, alpha, theta, wx: w.wx, wz: w.wz, marks });
 

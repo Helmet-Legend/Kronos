@@ -67,6 +67,10 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .corr .clk { align-self: flex-start; margin-top: 2px; padding: 5px 10px; border-radius: 10px; background: var(--amber); color: var(--on-accent); font-weight: 700; font-size: 16px; }
 .corr.wd .clk { background: var(--cyan); }
 .corr .alt { font-size: 12px; color: var(--muted); }
+.cran-btns { display: grid; grid-template-columns: 44px 1fr 44px; gap: 4px; margin-top: 4px; }
+.mini { height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel2); font-weight: 700; font-size: 15px; padding: 0; }
+.mini[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+.mini:disabled { opacity: .35; }
 
 .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
 .stat span:first-child { font-size: 11px; color: var(--muted); }
@@ -107,6 +111,10 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .conf .bar.main .track span { background: var(--amber); }
 .conf .short { display: none; font-size: 12px; }
 .lvl-txt.haute { color: var(--cyan); } .lvl-txt.moyenne { color: var(--amber); } .lvl-txt.faible { color: var(--red); }
+
+.crans .kv { display: grid; grid-template-columns: 72px 1fr auto; padding: 6px 0; }
+.tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.step:disabled { opacity: .35; }
 
 /* Interrupteur */
 .switch { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); text-align: left; }
@@ -203,6 +211,10 @@ nav.tabs button[aria-current="page"] { color: var(--amber); }
   main.tir .corr { padding: 8px 10px; border-radius: 14px; }
   main.tir .corr .val { font-size: 30px; }
   main.tir .corr .clk { font-size: 13px; padding: 4px 8px; }
+  main.tir .cran-btns { grid-template-columns: 40px 1fr 40px; margin-top: 2px; }
+  main.tir .mini { height: 36px; }
+  main.tir .corr:has(.cran-btns) .alt { display: none; }
+  main.tir .corr:has(.cran-btns) .clk { font-size: 12px; white-space: nowrap; padding: 3px 6px; }
   main.tir .stat { padding: 5px 7px; }
   main.tir .stat b { font-size: 14px; }
   main.tir .dist-val { font-size: 32px; }
