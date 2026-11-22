@@ -16,9 +16,14 @@ Calculateur balistique hors ligne pour le tir sportif : application web installa
 
 ## Moteur balistique
 
-Point-masse, intégration Runge-Kutta 4 (pas de 1 ms) dans le repère de la ligne de visée : traînée G1 ou G7, air humide (Tetens), vent, angle de site, dérive gyroscopique (Litz) avec le facteur de stabilité de Miller, sensibilité de la poudre à la température.
+Point-masse, intégration Runge-Kutta 4 (pas de 1 ms) dans le repère de la ligne de visée : traînée G1 ou G7, air humide (Tetens), densité et vitesse du son qui suivent l'altitude de la balle, vent, angle de site, dérive gyroscopique (Litz) avec le facteur de stabilité de Miller, sensibilité de la poudre à la température.
 
-Validé contre 31 valeurs publiées par Federal (Army Standard Metro) et Hornady (ICAO) jusqu'à 500 yards : écart maximal 2,2 ft/s (0,7 m/s) et 0,12 pouce (3 mm). Voir `tests/validation.test.js`.
+Validation :
+- contre 31 valeurs publiées par Federal (Army Standard Metro) et Hornady (ICAO) jusqu'à 500 yards : écart maximal 2,2 ft/s (0,7 m/s) et 0,12 pouce (3 mm). Voir `tests/validation.test.js` ;
+- contre le calculateur libre py-ballisticcalc jusqu'à 1 000 m, 16 cas en G1 et en G7 (supersonique, transsonique, subsonique ; chaleur, froid, basse pression, air saturé, site ±10°) : écart maximal 0,006 mrad en chute et en dérive, pour une exigence de 0,1 mrad. Voir `tests/reference1000.test.js` et `tests/tools/reference.py` ;
+- les tables G1 et G7 (jusqu'à Mach 5) sont identiques point par point aux tables standard de py-ballisticcalc.
+
+Calcul complet (zéro + table de 25 à 1 500 m) : moins de 1 ms sur un ordinateur.
 
 Pas encore pris en compte : effet Coriolis. Au-delà de 800 m et en zone transsonique, recalez sur vos impacts réels.
 

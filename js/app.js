@@ -10,7 +10,7 @@ import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 
 export const app = {
   state: M.defaultState(),

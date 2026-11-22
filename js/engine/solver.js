@@ -7,6 +7,8 @@ import { air, ICAO } from './atmo.js';
 import { BC_SI, energyJ, toUnit, clicks } from './units.js';
 
 const G = 9.80665;
+const LAPSE = 0.0065;      // gradient de température standard (K/m)
+const BARO_EXP = 5.25588; // exposant de la loi barométrique standard
 
 /**
  * Trajectoire brute.
@@ -21,6 +23,8 @@ const G = 9.80665;
  * @param {number} [o.theta] angle de site (rad, positif vers le haut)
  * @param {number} [o.wx] vent le long de la ligne de visée (m/s, positif vers la cible)
  * @param {number} [o.wz] vent latéral (m/s, positif vers la droite)
+ * @param {number} [o.tK] température au poste de tir (K). Si fournie, la densité et la vitesse du son
+ *   suivent l'altitude de la balle (gradient standard −6,5 K/km, loi barométrique) : effet sensible sur les tirs en site.
  * @param {number[]} o.marks distances (m) où relever la trajectoire, croissantes
  * @param {number} [o.dt] pas de temps (s)
  * @returns {Array<{x:number,y:number,z:number,v:number,t:number}|undefined>}
@@ -30,10 +34,20 @@ export function trajectory(o) {
   const k = Math.PI * o.rho / (8 * o.bc * BC_SI);
   const c = o.c, wx = o.wx || 0, wz = o.wz || 0, model = o.model || 'G1';
   const th = o.theta || 0, gx = -G * Math.sin(th), gy = -G * Math.cos(th);
+  const sinT = Math.sin(th), cosT = Math.cos(th), tK = o.tK;
+  // Rapport de densité et vitesse du son à l'altitude h (m) au-dessus du poste de tir.
+  let kh = k, ch = c;
+  const atAlt = (x, y) => {
+    if (!tK) return;
+    const T = tK - LAPSE * (x * sinT + y * cosT);
+    const r = T / tK;
+    kh = k * Math.pow(r, BARO_EXP - 1); // ρ/ρ0 = (P/P0)·(T0/T) = r^(n−1)
+    ch = c * Math.sqrt(r);
+  };
   const acc = (vx, vy, vz, out) => {
     const rx = vx - wx, rz = vz - wz;
     const vr = Math.sqrt(rx * rx + vy * vy + rz * rz);
-    const fd = -k * dragCoefficient(model, vr / c) * vr;
+    const fd = -kh * dragCoefficient(model, vr / ch) * vr;
     out[0] = fd * rx + gx; out[1] = fd * vy + gy; out[2] = fd * rz;
   };
   const a1 = [0, 0, 0], a2 = [0, 0, 0], a3 = [0, 0, 0], a4 = [0, 0, 0];
@@ -42,6 +56,7 @@ export function trajectory(o) {
   const marks = o.marks, out = new Array(marks.length);
   let mi = 0;
   while (mi < marks.length && t < 20 && vx > 0) {
+    atAlt(x, y);
     acc(vx, vy, vz, a1);
     const b2x = vx + dt / 2 * a1[0], b2y = vy + dt / 2 * a1[1], b2z = vz + dt / 2 * a1[2];
     acc(b2x, b2y, b2z, a2);
@@ -66,13 +81,28 @@ export function trajectory(o) {
   return out;
 }
 
-/** Angle du canon (rad) qui fait croiser la ligne de visée à la distance de zéro, sans vent ni site. */
+/**
+ * Angle du canon (rad) qui fait croiser la ligne de visée à la distance de zéro, sans vent ni site.
+ * Méthode de la sécante (la hauteur au zéro varie presque linéairement avec l'angle), dichotomie en secours.
+ */
 export function zeroAngle(o, zeroDist) {
+  const yAt = (a) => {
+    const r = trajectory({ ...o, alpha: a, marks: [zeroDist], dt: 0.0005, wx: 0, wz: 0, theta: 0 })[0];
+    return r ? r.y : -1e9;
+  };
+  let a0 = 0, y0 = yAt(a0), a1 = 0.003, y1 = yAt(a1);
+  for (let i = 0; i < 12 && y1 > -1e8 && y0 > -1e8; i++) {
+    if (Math.abs(y1) < 1e-7) return a1;
+    if (y1 === y0) break;
+    const a2 = a1 - y1 * (a1 - a0) / (y1 - y0);
+    if (!(a2 > -0.02 && a2 < 0.15)) break;
+    a0 = a1; y0 = y1; a1 = a2; y1 = yAt(a1);
+  }
+  if (Math.abs(y1) < 1e-5) return a1;
   let lo = -0.02, hi = 0.15;
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
-    const r = trajectory({ ...o, alpha: mid, marks: [zeroDist], dt: 0.0005, wx: 0, wz: 0, theta: 0 })[0];
-    if (r && r.y > 0) hi = mid; else lo = mid;
+    if (yAt(mid) > 0) hi = mid; else lo = mid;
   }
   return (lo + hi) / 2;
 }
@@ -124,14 +154,14 @@ export function solve({ gun, sight, load, met, zeroMet, shot, distances }) {
   const zm = zeroMet || ICAO;
   const az = air(zm.t, zm.p, zm.rh);
   const v0z = muzzleVelocity(load, zm.t);
-  const alpha = zeroAngle({ v0: v0z, bc: load.bc, model: load.model, rho: az.rho, c: az.c, h: gun.sightH }, gun.zero);
+  const alpha = zeroAngle({ v0: v0z, bc: load.bc, model: load.model, rho: az.rho, c: az.c, h: gun.sightH, tK: zm.t + 273.15 }, gun.zero);
 
   const a = air(met.t, met.p, met.rh);
   const v0 = muzzleVelocity(load, met.t);
   const w = windComponents(shot.windSpeed || 0, shot.windHour || 12);
   const theta = (shot.angleDeg || 0) * Math.PI / 180;
   const marks = [...new Set(distances.filter((d) => d > 0))].sort((p, q) => p - q);
-  const raw = trajectory({ v0, bc: load.bc, model: load.model, rho: a.rho, c: a.c, h: gun.sightH, alpha, theta, wx: w.wx, wz: w.wz, marks });
+  const raw = trajectory({ v0, bc: load.bc, model: load.model, rho: a.rho, c: a.c, h: gun.sightH, tK: met.t + 273.15, alpha, theta, wx: w.wx, wz: w.wz, marks });
 
   const sg = millerSg({ grains: load.grains, dMm: load.dMm, lenMm: load.lenMm, twistMm: gun.twist, v: v0, t: met.t, p: met.p });
   const spinSign = gun.twistDir === 'L' ? -1 : gun.twistDir === 'R' ? 1 : 0;

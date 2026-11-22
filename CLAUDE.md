@@ -39,6 +39,7 @@ Conventions : on modifie l'état seulement avec `set(fn)` (sauvegarde différée
 Point-masse RK4 (pas de 1 ms) dans le repère de la ligne de visée. Il prend en compte :
 - la traînée G1 ou G7, avec `bc` en lb/in² converti par × 703,0696 ;
 - l'air humide (Tetens) ;
+- la densité et la vitesse du son qui suivent l'altitude de la balle (gradient −6,5 K/km, loi barométrique ; `tK` dans `trajectory`), sensible sur les tirs en site ;
 - le vent à l'horloge (12 h = de face, 3 h = venant de la droite, qui pousse la balle à gauche) ;
 - l'angle de site ;
 - la dérive gyroscopique de Litz avec le Sg de Miller (sens du pas R, L ou `?`, nulle si inconnu) ;
@@ -46,9 +47,13 @@ Point-masse RK4 (pas de 1 ms) dans le repère de la ligne de visée. Il prend en
 
 Le zéro est calculé dans l'atmosphère ICAO par défaut (`zeroMet`).
 
-**Validation** (`tests/validation.test.js`) : 31 valeurs Federal (Army Standard Metro) et Hornady (ICAO) jusqu'à 500 yd. Écart maximal 2,2 ft/s et 0,12 in, tolérance des tests 3 ft/s et 0,2 in. Ne casse jamais ces tests. La table G7 a été écrite de mémoire : elle reste à vérifier contre une table publiée (JBM, Litz).
+**Validation** (ne casse jamais ces tests) :
+- `tests/validation.test.js` : 31 valeurs Federal (Army Standard Metro) et Hornady (ICAO) jusqu'à 500 yd. Écart maximal 2,2 ft/s et 0,12 in, tolérance 3 ft/s et 0,2 in.
+- `tests/reference1000.test.js` : 16 cas jusqu'à 1 000 m contre py-ballisticcalc 3.1.1 (G1 et G7, trans/subsonique, conditions extrêmes, site ±10°). Écart maximal 0,006 mrad, tolérance 0,03 mrad (porte du cahier : 0,1 mrad). Les données viennent de `tests/tools/reference.py` (outil hors application). Test de performance : < 5 ms pour zéro + table jusqu'à 1 500 m.
+- Tables G1 et G7 vérifiées point par point contre py-ballisticcalc (novembre 2026), jusqu'à Mach 5.
+- Le zéro se cherche par la sécante (dichotomie en secours).
 
-Pas encore fait : effet Coriolis, validation au-delà de 800 m et en transsonique.
+Pas encore fait : effet Coriolis, comparaison à des relevés réels au-delà de 800 m.
 
 ## État : phase 1 terminée (v0.1.1)
 
@@ -71,6 +76,8 @@ Pas encore fait : effet Coriolis, validation au-delà de 800 m et en transsoniqu
 npm test
 python3 tests/ui_check.py [dossier_captures]
 ```
+
+`ui_check.py` demande le paquet Python `playwright` (`pip install playwright`) ; il lance `/usr/bin/google-chrome`.
 
 Regarde les captures en portrait (390 × 844), en paysage (844 × 390) et en thème nuit après tout changement d'interface.
 
