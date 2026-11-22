@@ -11,7 +11,7 @@ import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 
-const VERSION = '0.7.0';
+const VERSION = '0.7.1';
 
 export const app = {
   state: M.defaultState(),
@@ -37,6 +37,11 @@ export function set(fn) {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => store.save(app.state), 250);
   render();
+}
+
+/** Retour haptique bref (Android ; sans effet sur iPhone en application web). */
+export function buzz() {
+  try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* ignoré */ }
 }
 
 export function ui(o) { Object.assign(app, o); render(); }

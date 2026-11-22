@@ -1,13 +1,13 @@
 // Écran Tir : corrections pour la distance et le vent du moment.
 import { h } from './dom.js';
 import { num, abs, int, timeFr, parseNum } from './format.js';
-import { app, set, compute, cranInfo, openSheet, ui } from '../app.js';
+import { app, set, compute, cranInfo, openSheet, ui, buzz } from '../app.js';
 import { solve } from '../engine/solver.js';
 import { meteoSheet, shotsSheet } from './sheets.js';
 import { sessionSheet, coldAdvice } from './carnet.js';
 import { confidence } from '../engine/confidence.js';
 
-const setShot = (o) => set((s) => ({ ...s, shot: { ...s.shot, ...o } }));
+const setShot = (o) => { buzz(); set((s) => ({ ...s, shot: { ...s.shot, ...o } })); };
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 export function renderTir() {

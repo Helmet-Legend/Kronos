@@ -8,6 +8,7 @@ Calculateur balistique hors ligne pour le tir sportif : application web installa
 - **Zone probable d'impact (95 %)** : propagation des incertitudes (V0, BC, vent, distance, sens des rayures, dispersion arme + tireur), part de chaque facteur et conseil qui réduit le plus la zone.
 - **Réglages du tir** : distance (saisie ou ±10/±50 m), vent à l'horloge (12 h = de face, 3 h = de la droite), angle de site.
 - **Météo** : automatique (GPS + Open-Meteo, pression au stand) ou saisie manuelle (pression station ou QNH + altitude). Le vent météo peut être converti en heures si la direction du tir est connue.
+- **Profil de la trajectoire** (en tête de la table) : courbe par rapport à la ligne de visée, flèche maximale, passage sous Mach 1,2.
 - **Table de tir** : 100 à 1500 m, pas de 25, 50 ou 100 m, avec le vent du moment. La ligne la plus proche de la distance de l'écran Tir est surlignée.
 - **Chronographe** : journal des V0 mesurées avec la température de la poudre ; sensibilité apprise par régression (à partir de 3 mesures sur 10 °C d'écart), appliquée à la munition avec la V0 à la température de référence.
 - **Hausse graduée** (tangentielle, curseur, dioptre à crans) : cran conseillé et tenue restante sur l'écran Tir et dans la table, choix manuel du cran. Étalonnage au tir : l'angle réel d'un cran mesuré est enregistré (il reste valable avec une autre munition) et corrige les crans voisins par interpolation (calculé, ajusté, mesuré).
