@@ -27,7 +27,7 @@ Kronos est un calculateur balistique hors ligne pour le tir sportif en France : 
 ```
 js/engine/   moteur balistique (SI), sans dépendance au navigateur : drag.js (G1, G7), atmo.js, units.js, solver.js,
              grouping.js (groupe, point moyen, coup à froid, clics), truing.js (recalage V0/BC), targets.js (cibles TAR)
-js/data/     model.js (état et opérations pures), store.js, catalog.js, meteo.js
+js/data/     model.js (état et opérations pures), store.js, catalog.js, meteo.js, crypto.js (sauvegarde chiffrée AES-GCM / PBKDF2)
 js/ui/       dom.js (mini h()), format.js, tir.js, table.js, armes.js, reglages.js, sheets.js (panneaux et formulaires),
              carnet.js (saisie de séance, carnet, recalage : panneaux à état local redessinés par draw())
 js/app.js    état unique, set(), rendu complet à chaque changement, panneaux, wake lock, service worker
@@ -59,11 +59,12 @@ Pas encore fait : effet Coriolis, comparaison à des relevés réels au-delà de
 
 ## État (v0.3.0, branche `claude/nuit-moteur-carnet`)
 
-Écran Tir (corrections en clics et sens, ou tenue en cm en visée mécanique ; distance, vent à l'horloge, angle ; vitesse, énergie, temps de vol, Mach), météo auto et manuelle (station ou QNH), table de tir, armes et munitions (catalogue et saisie manuelle), stabilité de Miller, compteur de coups (total jamais effacé, compteur depuis le nettoyage, annulation de la dernière saisie), thèmes sombre/clair/nuit, paysage, wake lock, sauvegarde, hors ligne. v0.2.0 : moteur validé jusqu'à 1 000 m (voir Validation). v0.3.0 : carnet de séance et recalage V0/BC (étapes 1 et 2 ci-dessous). 67 tests node et le parcours UI passent.
+Écran Tir (corrections en clics et sens, ou tenue en cm en visée mécanique ; distance, vent à l'horloge, angle ; vitesse, énergie, temps de vol, Mach), météo auto et manuelle (station ou QNH), table de tir, armes et munitions (catalogue et saisie manuelle), stabilité de Miller, compteur de coups (total jamais effacé, compteur depuis le nettoyage, annulation de la dernière saisie), thèmes sombre/clair/nuit, paysage, wake lock, sauvegarde, hors ligne. v0.2.0 : moteur validé jusqu'à 1 000 m (voir Validation). v0.3.0 : carnet de séance et recalage V0/BC (étapes 1 et 2 ci-dessous). v0.4.0 : export chiffré, import avec mot de passe et aperçu, rappel de sauvegarde (phase 2 du cahier, sans le choix « fusionner » à l'import). 67 tests node et le parcours UI passent.
 
 Schéma de données 2 (`SCHEMA` dans `model.js`, migration `migrate()` appliquée au chargement et à l'import) :
 - `gun.sessions[]` : `{ id, d, dist, loadId, loadName, target, coldFirst, met, wind, shots: [{x, y}] }`, impacts en mm, origine au point visé, y vers le haut. Aucune valeur dérivée stockée : `groupStats()` recalcule.
 - `load.trueLog[]` : `{ id, d, dist, dyCm, param: 'v0'|'bc', from, to, sessionId, undone? }`, `load.bcTrued` si un recalage BC est actif.
+- `settings.lastBackupIso` et `settings.changesSinceBackup` (compté dans `set()` quand `guns` change) : rappel de sauvegarde (`backupDue`), bandeau dans Armes et Réglages, jamais sur l'écran Tir.
 - La photo de cible n'est pas conservée (elle sert seulement à placer les impacts).
 - Le diamètre du noir des cibles TAR reste indicatif (`blackConfirmed: false` dans `targets.js`) : à confirmer sur le règlement.
 

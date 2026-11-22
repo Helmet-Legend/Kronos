@@ -27,7 +27,7 @@ export function defaultState() {
   const ss = newLoad({ id: 'mun_ss', name: 's.S. 198 gr', bc: 0.495, model: 'G1', v0: 760, sens: 0.8, grains: 198, dMm: 8.22, lenMm: 33 });
   return {
     schema: SCHEMA,
-    settings: { theme: 'dark', tableFrom: 100, tableTo: 1000, tableStep: 50, wakeLock: true },
+    settings: { theme: 'dark', tableFrom: 100, tableTo: 1000, tableStep: 50, wakeLock: true, lastBackupIso: null, changesSinceBackup: 0 },
     guns: [
       { id: 'arme_tld', name: 'Carabine .308', cal: '.308 Winchester', barrelMm: 610, twist: 279, twistDir: 'R', sight: { kind: 'scope', unit: 'MRAD', click: 0.1 }, sightH: 0.045, zero: 100,
         loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] }, sessions: [] },
@@ -180,6 +180,22 @@ export function migrate(s) {
   }
   s.schema = SCHEMA;
   return s;
+}
+
+/** Sauvegarde à rappeler ? Plus de 30 jours depuis la dernière, ou plus de 20 modifications. Renvoie le motif ou null. */
+export function backupDue(settings, now = Date.now()) {
+  const n = settings.changesSinceBackup || 0;
+  if (n > 20) return n + ' modifications depuis la dernière sauvegarde';
+  if (settings.lastBackupIso) {
+    const days = Math.floor((now - Date.parse(settings.lastBackupIso)) / 86400000);
+    if (days > 30 && n > 0) return 'dernière sauvegarde il y a ' + days + ' jours';
+  }
+  return null;
+}
+
+/** Marque une sauvegarde faite. */
+export function backupDone(s, iso = new Date().toISOString()) {
+  return { ...s, settings: { ...s.settings, lastBackupIso: iso, changesSinceBackup: 0 } };
 }
 
 export function makeBackup(s) {

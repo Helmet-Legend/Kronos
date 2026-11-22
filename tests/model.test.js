@@ -99,3 +99,14 @@ test('migration du schéma 1 : carnet et historique de recalage vides', () => {
   assert.deepEqual(r.state.guns[0].sessions, []);
   assert.deepEqual(r.state.guns[0].loads[0].trueLog, []);
 });
+
+test('rappel de sauvegarde : 20 modifications ou 30 jours', () => {
+  const now = Date.parse('2026-11-22T12:00:00Z');
+  assert.equal(M.backupDue({ changesSinceBackup: 0, lastBackupIso: null }, now), null);
+  assert.equal(M.backupDue({ changesSinceBackup: 20 }, now), null);
+  assert.match(M.backupDue({ changesSinceBackup: 21 }, now), /21 modifications/);
+  assert.match(M.backupDue({ changesSinceBackup: 1, lastBackupIso: '2026-10-01T00:00:00Z' }, now), /52 jours/);
+  assert.equal(M.backupDue({ changesSinceBackup: 0, lastBackupIso: '2026-01-01T00:00:00Z' }, now), null, 'rien de nouveau à sauvegarder');
+  const s = M.backupDone({ ...M.defaultState(), settings: { ...M.defaultState().settings, changesSinceBackup: 30 } }, '2026-11-22T12:00:00Z');
+  assert.equal(s.settings.changesSinceBackup, 0); assert.equal(s.settings.lastBackupIso, '2026-11-22T12:00:00Z');
+});

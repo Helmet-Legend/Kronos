@@ -14,7 +14,7 @@ Calculateur balistique hors ligne pour le tir sportif : application web installa
 - **Compteur de coups** : total jamais remis à zéro, compteur depuis le dernier nettoyage, historique, annulation de la dernière saisie.
 - **Thèmes** : sombre, clair (plein soleil), nuit (rouge sur noir). Disposition paysage au stand.
 - **Écran toujours allumé** sur l'écran Tir (Wake Lock, si le navigateur le permet).
-- **Sauvegarde** : export et import d'un fichier JSON. Les données restent sur le téléphone (IndexedDB).
+- **Sauvegarde** : export et import d'un fichier JSON, en clair ou chiffré par mot de passe (AES-GCM 256 bits, clé PBKDF2-SHA256 600 000 itérations), aperçu du contenu avant restauration, partage par la feuille du système si disponible. Rappel si plus de 20 modifications ou plus de 30 jours depuis la dernière sauvegarde. Les données restent sur le téléphone (IndexedDB, stockage protégé demandé au navigateur).
 
 ## Moteur balistique
 

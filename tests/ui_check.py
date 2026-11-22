@@ -103,8 +103,26 @@ with sync_playwright() as p:
     shot(page, '07-paysage')
     # export
     page.locator('nav.tabs button', has_text='Réglages').click()
-    with page.expect_download() as d: page.get_by_role('button', name='Exporter').click()
+    page.get_by_role('button', name='Exporter').first.click(); page.wait_for_selector('.sheet h3:has-text("Exporter")')
+    with page.expect_download() as d: page.get_by_role('button', name='Télécharger').click()
     assert d.value.suggested_filename.startswith('kronos-sauvegarde-')
+    assert 'jamais' not in page.inner_text('main'), 'date de sauvegarde non enregistrée'
+    # export chiffré puis import avec le mot de passe
+    page.get_by_role('button', name='Exporter').first.click()
+    page.get_by_label('Mot de passe (facultatif)').fill('Kronos-200m'); page.get_by_label('Confirmer le mot de passe').fill('Kronos-200m')
+    with page.expect_download(timeout=30000) as d2: page.get_by_role('button', name='Télécharger').click()
+    enc_path = d2.value.path()
+    assert d2.value.suggested_filename.endswith('-chiffree.json')
+    assert 'MAS 36' not in open(enc_path, encoding='utf8').read(), 'données en clair dans le fichier chiffré'
+    page.locator('input[type=file][aria-label="Fichier de sauvegarde"]').set_input_files(enc_path)
+    page.wait_for_selector('.sheet h3:has-text("Sauvegarde chiffrée")')
+    page.get_by_label('Mot de passe de la sauvegarde').fill('mauvais'); page.get_by_role('button', name='Déchiffrer').click()
+    page.wait_for_selector('.sheet .errors:has-text("Mot de passe incorrect")', timeout=30000)
+    page.get_by_label('Mot de passe de la sauvegarde').fill('Kronos-200m'); page.get_by_role('button', name='Déchiffrer').click()
+    page.wait_for_selector('.sheet h3:has-text("Restaurer la sauvegarde")', timeout=30000)
+    assert '1 séance' in page.inner_text('.sheet') or '1 séance(s)' in page.inner_text('.sheet'), page.inner_text('.sheet')
+    page.locator('.sheet').get_by_role('button', name='Restaurer').click()
+    assert 'Sauvegarde restaurée' in page.inner_text('.toast')
     # service worker
     page.set_viewport_size({'width': 390, 'height': 844}); page.goto(URL); page.wait_for_timeout(800)
     sw = page.evaluate('navigator.serviceWorker.getRegistration().then(r => !!r)')

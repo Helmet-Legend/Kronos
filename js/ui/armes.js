@@ -6,6 +6,7 @@ import { gunSheet, loadSheet, catalogSheet, shotsSheet } from './sheets.js';
 import { millerSg } from '../engine/solver.js';
 import { carnetSheet, sessionStats } from './carnet.js';
 import { mmToMoa } from '../engine/grouping.js';
+import { backupBanner } from './reglages.js';
 
 const TWIST = { R: 'à droite', L: 'à gauche', '?': 'sens inconnu' };
 
@@ -17,6 +18,7 @@ export function renderArmes() {
 
 function gunList(s) {
   return h('main', null,
+    backupBanner(),
     s.guns.map((g) => {
       const l = M.activeLoad(g);
       return h('button', { class: 'item' + (g.id === s.gunId ? ' on' : ''), onClick: () => ui({ armeId: g.id }) },

@@ -10,7 +10,7 @@ import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 export const app = {
   state: M.defaultState(),
@@ -20,6 +20,7 @@ export const app = {
   sheetEl: null,
   toast: '',
   wake: null,
+  persisted: null,   // résultat de navigator.storage.persist()
   version: VERSION
 };
 
@@ -27,7 +28,11 @@ let saveTimer = null, toastTimer = null;
 
 /** Applique une transformation d'état, sauvegarde (différée) et redessine. */
 export function set(fn) {
-  app.state = fn(app.state);
+  const prev = app.state;
+  let next = fn(prev);
+  // Rappel de sauvegarde : on compte les modifications des armes, munitions, compteurs et séances.
+  if (next.guns !== prev.guns) next = { ...next, settings: { ...next.settings, changesSinceBackup: (next.settings.changesSinceBackup || 0) + 1 } };
+  app.state = next;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => store.save(app.state), 250);
   render();
@@ -132,7 +137,7 @@ export async function start() {
     app.state = M.migrate({ ...d, ...saved, settings: { ...d.settings, ...saved.settings }, shot: { ...d.shot, ...saved.shot }, met: { ...d.met, ...saved.met } });
   }
   render();
-  store.persist();
+  store.persist().then((ok) => { app.persisted = ok; });
   requestWake();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); });
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
