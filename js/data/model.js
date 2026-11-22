@@ -1,4 +1,5 @@
 // Modèle de données et opérations pures (testables sans navigateur).
+import { buildSteps } from '../engine/ladder.js';
 
 export const SCHEMA = 2; // 2 : carnet de séances (gun.sessions) et recalages (load.trueLog)
 
@@ -121,6 +122,42 @@ export function applyChrono(gun, loadId, fit) {
   if (fit && fit.ok) { sens = Math.round(fit.slope * 100) / 100; v0 = fit.at(ref); } else { const m = log[log.length - 1]; v0 = m.v0 - sens * (m.t - ref); }
   const sds = log.map((m) => m.sd).filter((x) => x > 0);
   return updateLoad(gun, { ...l, v0: Math.round(v0), sens, measured: true, sdV0: sds.length ? sds[sds.length - 1] : l.sdV0 });
+}
+
+/* ---------- Développement de charge ---------- */
+
+/** Crée l'échelle d'une munition à partir de la source et des bornes saisies (source obligatoire). */
+export function setLadder(gun, loadId, o) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  const steps = buildSteps(o.start, o.max, o.step);
+  if (!l || !steps || !String(o.source || '').trim()) return gun;
+  const ladder = { source: String(o.source).trim(), powder: String(o.powder || '').trim(), start: o.start, max: o.max, step: o.step, t: o.t ?? null, d: todayIso(),
+    steps: steps.map((gr) => ({ gr, v0: null, groupMm: null, signs: [] })) };
+  return updateLoad(gun, { ...l, ladder });
+}
+
+export function updateLadderStep(gun, loadId, i, patch) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  if (!l || !l.ladder || !l.ladder.steps[i]) return gun;
+  const steps = l.ladder.steps.map((s, k) => (k === i ? { ...s, ...patch } : s));
+  return updateLoad(gun, { ...l, ladder: { ...l.ladder, steps } });
+}
+
+export function clearLadder(gun, loadId) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  if (!l) return gun;
+  const nl = { ...l }; delete nl.ladder;
+  return updateLoad(gun, nl);
+}
+
+/** Enregistre la charge retenue dans la recette, avec sa V0 ramenée à la température de référence. */
+export function applyLadder(gun, loadId, gr, v0) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  if (!l || !l.ladder) return gun;
+  const ref = l.refTemp ?? 15, t = l.ladder.t;
+  const nl = { ...l, chargeGr: gr, powder: l.ladder.powder || l.powder, chargeSource: l.ladder.source, handload: true };
+  if (isFinite(v0) && v0 > 0) { nl.v0 = Math.round(t === null || t === undefined ? v0 : v0 - (l.sens || 0) * (t - ref)); nl.measured = true; }
+  return updateLoad(gun, nl);
 }
 
 /* ---------- Hausse graduée ---------- */

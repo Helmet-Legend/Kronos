@@ -100,6 +100,22 @@ with sync_playwright() as p:
     assert 'V0 mesurée' in page.inner_text('.toast')
     page.get_by_role('button', name='Fermer').click()
     assert 'mesurée' in page.inner_text('main')
+    # développement de charge : échelle, mesures, signe de pression, candidate
+    page.get_by_role('button', name='Développement de charge').click(); page.wait_for_selector('.sheet h3:has-text("Développement")')
+    page.get_by_label('Source (obligatoire)').fill('Manuel d’essai, p. 1'); page.get_by_label('Poudre').fill('Poudre A')
+    page.get_by_label('Charge de départ (gr)').fill('40'); page.get_by_label('Charge maximale (gr)').fill('42')
+    page.get_by_role('button', name='Créer l’échelle').click()
+    for gr, v in [('40,0', '790'), ('40,3', '798'), ('40,6', '806'), ('40,9', '809'), ('41,2', '811'), ('41,5', '812')]:
+        f = page.get_by_label('V0 au palier ' + gr + ' gr'); f.fill(v); f.press('Tab')
+    page.get_by_role('button', name='Signes de pression au palier 41,5 gr').click()
+    page.get_by_role('button', name='Marque d’éjecteur').click()
+    assert 'Signe de pression à 41,5 gr' in page.inner_text('.sheet')
+    assert 'Charge candidate : 40,9 gr' in page.inner_text('.sheet'), page.inner_text('.sheet')
+    shot(page, '04c-charge')
+    page.get_by_role('button', name='Enregistrer dans la recette').click(); page.locator('.sheet').get_by_role('button', name='Enregistrer').click()
+    assert 'Recette mise à jour' in page.inner_text('.toast')
+    page.get_by_role('button', name='Fermer').click()
+    assert 'recette 40,9 gr' in page.inner_text('main')
     # compteur
     page.get_by_role('button', name='+ Coups').click(); page.get_by_role('button', name='+20').click()
     page.get_by_role('button', name='Nettoyage fait').click(); page.locator('.sheet').get_by_role('button', name='Nettoyage fait').click()

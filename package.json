@@ -1,6 +1,6 @@
 {
   "name": "kronos",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Kronos : calculateur balistique hors ligne pour le tir sportif (PWA, sans dépendance)",
   "type": "module",
   "private": true,

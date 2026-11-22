@@ -11,6 +11,7 @@ export const TIPS = {
   arm: ['Vos armes', 'Chaque arme a ses munitions, sa visée, son compteur et son carnet de séances. Touchez une arme pour l’ouvrir, puis « Utiliser » pour qu’elle devienne l’arme active de tous les écrans.'],
   ent: ['Les deux compteurs', 'Le total depuis l’acquisition ne s’efface jamais. « Nettoyage fait » remet seulement le compteur depuis le nettoyage à zéro.'],
   seance: ['Saisir une séance', 'Touchez le centre de chaque trou, dans l’ordre des tirs. Le premier impact peut être marqué coup à froid : il est exclu du point moyen. Le zoom aide à placer les impacts d’un petit groupe.'],
+  ladder: ['Développement de charge', 'Kronos ne fournit aucune charge : saisissez les bornes de votre manuel. Notez la V0 et le groupement de chaque palier ; au premier signe de pression, l’échelle s’arrête. La charge candidate est le milieu des 3 paliers où la V0 varie le moins.'],
   meteo: ['Météo', 'La météo automatique récupère température, pression au stand et humidité pour votre position. Hors réseau, saisissez les valeurs du baromètre ou du stand.']
 };
 

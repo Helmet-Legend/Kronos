@@ -9,6 +9,7 @@ import { mmToMoa } from '../engine/grouping.js';
 import { backupBanner } from './reglages.js';
 import { hausseCard } from './hausse.js';
 import { chronoSheet } from './chrono.js';
+import { ladderSheet } from './ladder.js';
 import { tipCard } from './aide.js';
 
 const TWIST = { R: 'à droite', L: 'à gauche', '?': 'sens inconnu' };
@@ -70,7 +71,10 @@ function gunDetail(g) {
       h('div', { class: 'grid2', style: { marginTop: '10px' } },
         h('button', { class: 'btn small', onClick: () => openSheet('catalog', () => catalogSheet(g.id)) }, 'Depuis le catalogue'),
         h('button', { class: 'btn small', onClick: () => openSheet('load-new', () => loadSheet(g.id, null)) }, 'Saisie manuelle')),
-      h('button', { class: 'btn small block', style: { marginTop: '8px' }, onClick: () => openSheet('chrono-' + l.id, () => chronoSheet(g.id, l.id)) }, 'Chronographe · ' + l.name + ((l.chronoLog || []).length ? ' (' + l.chronoLog.length + ')' : '')),
+      h('div', { class: 'muted', style: { fontSize: '12px', margin: '10px 0 6px' } }, 'Munition active : ' + l.name + (l.chargeGr ? ' · recette ' + num(l.chargeGr, 1) + ' gr' + (l.powder ? ' de ' + l.powder : '') : '')),
+      h('div', { class: 'grid2' },
+        h('button', { class: 'btn small', onClick: () => openSheet('chrono-' + l.id, () => chronoSheet(g.id, l.id)) }, 'Chronographe' + ((l.chronoLog || []).length ? ' (' + l.chronoLog.length + ')' : '')),
+        h('button', { class: 'btn small', onClick: () => openSheet('ladder-' + l.id, () => ladderSheet(g.id, l.id)) }, 'Développement de charge')),
       kv('Stabilité (Miller)', h('span', { style: { color: sgCol, fontWeight: '700' } }, sgTxt)),
       carnetCard(g, l)),
 
