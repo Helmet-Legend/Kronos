@@ -1,11 +1,11 @@
 // Service worker : l'application fonctionne hors ligne (cache d'abord), la météo passe par le réseau.
-const CACHE = 'kronos-v0.1.0';
+const CACHE = 'kronos-v0.1.1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/app.js', './js/ui/dom.js', './js/ui/format.js', './js/ui/tir.js', './js/ui/table.js', './js/ui/armes.js', './js/ui/reglages.js', './js/ui/sheets.js',
   './js/engine/solver.js', './js/engine/drag.js', './js/engine/atmo.js', './js/engine/units.js',
   './js/data/model.js', './js/data/store.js', './js/data/catalog.js', './js/data/meteo.js',
-  './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
+  './icons/favicon-64.png', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (e) => {
