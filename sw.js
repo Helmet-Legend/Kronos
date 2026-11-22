@@ -1,9 +1,9 @@
 // Service worker : l'application fonctionne hors ligne (cache d'abord), la météo passe par le réseau.
-const CACHE = 'kronos-v0.2.0';
+const CACHE = 'kronos-v0.3.0';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
-  './js/app.js', './js/ui/dom.js', './js/ui/format.js', './js/ui/tir.js', './js/ui/table.js', './js/ui/armes.js', './js/ui/reglages.js', './js/ui/sheets.js',
-  './js/engine/solver.js', './js/engine/drag.js', './js/engine/atmo.js', './js/engine/units.js',
+  './js/app.js', './js/ui/dom.js', './js/ui/format.js', './js/ui/tir.js', './js/ui/table.js', './js/ui/armes.js', './js/ui/reglages.js', './js/ui/sheets.js', './js/ui/carnet.js',
+  './js/engine/solver.js', './js/engine/drag.js', './js/engine/atmo.js', './js/engine/units.js', './js/engine/grouping.js', './js/engine/targets.js', './js/engine/truing.js',
   './js/data/model.js', './js/data/store.js', './js/data/catalog.js', './js/data/meteo.js',
   './icons/favicon-64.png', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
 ];

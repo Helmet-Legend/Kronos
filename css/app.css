@@ -2,16 +2,19 @@
 :root, [data-theme="dark"] {
   --bg: #05080F; --panel: #0D1422; --panel2: #142036; --border: #26395C;
   --fg: #FFFFFF; --muted: #AAB8D1; --amber: #FF8A1F; --cyan: #38BDF8; --red: #FF6B86; --violet: #B49BFF; --on-accent: #05080F;
+  --paper: #E8EDF5; --ink: #141C2B; --grid: rgba(20, 28, 43, .22);
   color-scheme: dark;
 }
 [data-theme="light"] {
   --bg: #FFFFFF; --panel: #F0F4FA; --panel2: #DDE6F3; --border: #B7C6DD;
   --fg: #05080F; --muted: #3D4C64; --amber: #C2410C; --cyan: #0369A1; --red: #BE123C; --violet: #6D28D9; --on-accent: #FFFFFF;
+  --paper: #FFFFFF; --ink: #05080F; --grid: rgba(5, 8, 15, .2);
   color-scheme: light;
 }
 [data-theme="night"] {
   --bg: #000000; --panel: #0A0000; --panel2: #140202; --border: #3D0A06;
   --fg: #FF3B2A; --muted: #A3261A; --amber: #FF5A3C; --cyan: #E0301E; --red: #FF2A1A; --violet: #C2321F; --on-accent: #000000;
+  --paper: #120101; --ink: #3D0A06; --grid: rgba(255, 59, 42, .22);
   color-scheme: dark;
 }
 
@@ -45,6 +48,7 @@ main > * { flex-shrink: 0; }
 .row { display: flex; gap: 8px; align-items: center; }
 .grow { flex: 1; min-width: 0; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 2px 0; }
 
@@ -83,10 +87,24 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .btn.danger { border-color: var(--red); color: var(--red); background: transparent; }
 .btn.small { min-height: 40px; font-size: 13px; padding: 0 10px; }
 .btn.block { width: 100%; }
+.c-actions .sm { display: none; }
 .step { min-width: 52px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel2); font-weight: 700; font-size: 16px; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip { min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--panel); font-weight: 700; font-size: 13px; }
 .chip[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--on-accent); }
+
+/* Interrupteur */
+.switch { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); text-align: left; }
+.switch b, .switch small { display: block; }
+.switch small { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.switch .knob { width: 50px; height: 30px; flex: none; border-radius: 15px; background: var(--border); position: relative; transition: background .15s; }
+.switch .knob::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--fg); transition: transform .15s; }
+.switch[aria-checked="true"] .knob { background: var(--violet); }
+.switch[aria-checked="true"] .knob::after { transform: translateX(20px); background: var(--on-accent); }
+
+/* Cible du carnet */
+.target { display: block; width: 100%; max-width: 420px; margin: 0 auto; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--paper); cursor: crosshair; touch-action: manipulation; }
+.stat b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Distance */
 .dist-val { width: 100%; background: transparent; border: none; font-size: 44px; font-weight: 700; text-align: center; padding: 0; }
@@ -159,6 +177,7 @@ nav.tabs button[aria-current="page"] { color: var(--amber); }
   main.tir .c-wind { grid-area: wind; padding: 8px; }
   main.tir .c-angle { grid-area: angle; padding: 8px 10px; }
   main.tir .c-notes { grid-area: notes; }
+  main.tir .c-cold { grid-area: notes; }
   main.tir .c-actions { grid-area: actions; }
   main.tir .card { padding: 8px 10px; }
   main.tir .corr { padding: 8px 10px; border-radius: 14px; }
@@ -173,7 +192,10 @@ nav.tabs button[aria-current="page"] { color: var(--amber); }
   main.tir .clock { transform: scale(.82); margin: -21px auto; }
   main.tir .c-dist .row .muted { display: none; }
   main.tir .stat span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  main.tir .c-actions .btn { font-size: 13px; white-space: nowrap; padding: 0 8px; }
+  main.tir .c-actions .btn { font-size: 13px; padding: 0 4px; white-space: nowrap; }
+  main.tir .c-actions .lg { display: none; }
+  main.tir .c-actions .sm { display: inline; }
+  main.tir .c-actions { gap: 6px; }
   .toast { bottom: 16px; left: 120px; right: 40px; }
 }
 @media (orientation: portrait), (min-height: 521px) { .shell { display: contents; } }

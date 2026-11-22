@@ -10,7 +10,7 @@ import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
 export const app = {
   state: M.defaultState(),
@@ -129,7 +129,7 @@ export async function start() {
   const saved = await store.load();
   if (saved && Array.isArray(saved.guns) && saved.guns.length) {
     const d = M.defaultState();
-    app.state = { ...d, ...saved, settings: { ...d.settings, ...saved.settings }, shot: { ...d.shot, ...saved.shot }, met: { ...d.met, ...saved.met } };
+    app.state = M.migrate({ ...d, ...saved, settings: { ...d.settings, ...saved.settings }, shot: { ...d.shot, ...saved.shot }, met: { ...d.met, ...saved.met } });
   }
   render();
   store.persist();

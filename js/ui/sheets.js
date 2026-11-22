@@ -6,7 +6,7 @@ import { fetchMeteo, windHour } from '../data/meteo.js';
 import { AMMO, SIGHTS } from '../data/catalog.js';
 import { qnhFromStation, stationFromQnh } from '../engine/atmo.js';
 
-function frame(title, ...body) {
+export function frame(title, ...body) {
   return h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('div', { class: 'grab' }),
     h('header', null, h('h3', null, title), h('button', { class: 'icon-btn', onClick: closeSheet, 'aria-label': 'Fermer' }, icon('close'))),
@@ -14,7 +14,7 @@ function frame(title, ...body) {
 }
 
 /** Champ de saisie numérique ou texte. Renvoie { el, get }. */
-function field(label, value, o = {}) {
+export function field(label, value, o = {}) {
   const id = 'f_' + Math.random().toString(36).slice(2, 8);
   const input = h('input', { id, type: 'text', inputmode: o.text ? 'text' : 'decimal', value: value === undefined || value === null ? '' : String(value).replace('.', o.text ? '.' : ','), autocomplete: 'off', placeholder: o.placeholder || '' });
   const el = h('div', { class: 'field' }, h('label', { for: id }, label), input, o.help ? h('span', { class: 'help' }, o.help) : null);

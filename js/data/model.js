@@ -1,12 +1,12 @@
 // Modèle de données et opérations pures (testables sans navigateur).
 
-export const SCHEMA = 1;
+export const SCHEMA = 2; // 2 : carnet de séances (gun.sessions) et recalages (load.trueLog)
 
 export const uid = (p = 'id') => p + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export function newLoad(o = {}) {
-  return { id: uid('mun'), name: 'Nouvelle munition', bc: 0.45, model: 'G1', v0: 800, refTemp: 15, sens: 0, grains: 168, dMm: 7.82, lenMm: 31, measured: false, ...o };
+  return { id: uid('mun'), name: 'Nouvelle munition', bc: 0.45, model: 'G1', v0: 800, refTemp: 15, sens: 0, grains: 168, dMm: 7.82, lenMm: 31, measured: false, trueLog: [], ...o };
 }
 
 export function newGun(o = {}) {
@@ -16,6 +16,7 @@ export function newGun(o = {}) {
     sight: { kind: 'scope', unit: 'MRAD', click: 0.1 }, sightH: 0.045, zero: 100,
     loads: [load], loadId: load.id,
     counter: { total: 0, since: 0, log: [] },
+    sessions: [],
     ...o
   };
 }
@@ -29,9 +30,9 @@ export function defaultState() {
     settings: { theme: 'dark', tableFrom: 100, tableTo: 1000, tableStep: 50, wakeLock: true },
     guns: [
       { id: 'arme_tld', name: 'Carabine .308', cal: '.308 Winchester', barrelMm: 610, twist: 279, twistDir: 'R', sight: { kind: 'scope', unit: 'MRAD', click: 0.1 }, sightH: 0.045, zero: 100,
-        loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] } },
+        loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] }, sessions: [] },
       { id: 'arme_k98', name: 'Mauser K98k', cal: '7,92x57 IS', barrelMm: 600, twist: 240, twistDir: 'R', sight: { kind: 'iron' }, sightH: 0.028, zero: 100,
-        loads: [ss], loadId: ss.id, counter: { total: 0, since: 0, log: [] } }
+        loads: [ss], loadId: ss.id, counter: { total: 0, since: 0, log: [] }, sessions: [] }
     ],
     gunId: 'arme_tld',
     shot: { dist: 300, windSpeed: 2, windHour: 3, angleDeg: 0 },
@@ -62,6 +63,57 @@ export function undoLast(gun) {
   const n = log[i].n;
   log.splice(i, 1, { ...log[i], k: 'annulé' });
   return { ...gun, counter: { total: Math.max(0, gun.counter.total - n), since: Math.max(0, gun.counter.since - n), log } };
+}
+
+/* ---------- Carnet de séances ---------- */
+
+/**
+ * Enregistre une séance : impacts bruts (mm, origine au point visé), aucune valeur dérivée stockée.
+ * Les coups s'ajoutent aux deux compteurs, avec une ligne « séance » au journal.
+ */
+export function addSession(gun, o) {
+  const shots = (o.shots || []).map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) }));
+  const load = gun.loads.find((l) => l.id === o.loadId) || activeLoad(gun);
+  const rec = {
+    id: uid('seance'), d: o.d || todayIso(), dist: o.dist, loadId: load.id, loadName: load.name,
+    target: o.target || 'GRID', coldFirst: !!o.coldFirst && shots.length >= 2,
+    met: o.met ? { t: o.met.t, p: o.met.p, rh: o.met.rh } : null,
+    wind: o.wind ? { speed: o.wind.speed, hour: o.wind.hour } : null,
+    shots
+  };
+  const g = addShots(gun, shots.length, 'séance', rec.d);
+  return { ...g, sessions: [...(gun.sessions || []), rec] };
+}
+
+/** Supprime une séance du carnet (les coups restent comptés : le compteur ne baisse jamais). */
+export function removeSession(gun, id) {
+  return { ...gun, sessions: (gun.sessions || []).filter((x) => x.id !== id) };
+}
+
+/* ---------- Recalage ---------- */
+
+/** Applique un recalage V0 ou BC, daté et historisé. */
+export function applyTruing(gun, loadId, t) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  if (!l || t.to === null || t.to === undefined) return gun;
+  const to = t.param === 'v0' ? Math.round(t.to) : Math.round(t.to * 1000) / 1000;
+  const entry = { id: uid('rec'), d: t.d || todayIso(), dist: t.dist, dyCm: Math.round(t.dyM * 1000) / 10, param: t.param, from: t.from, to, sessionId: t.sessionId || null };
+  const nl = { ...l, [t.param]: to, trueLog: [...(l.trueLog || []), entry] };
+  if (t.param === 'bc') nl.bcTrued = true;
+  return updateLoad(gun, nl);
+}
+
+/** Annule le dernier recalage : la valeur précédente revient, la ligne reste barrée dans l'historique. */
+export function undoTruing(gun, loadId) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  const log = (l && l.trueLog) || [];
+  const i = log.map((e) => !!e.undone).lastIndexOf(false);
+  if (i < 0) return gun;
+  const e = log[i];
+  const nlog = log.slice(); nlog[i] = { ...e, undone: true };
+  const nl = { ...l, [e.param]: e.from, trueLog: nlog };
+  if (e.param === 'bc') nl.bcTrued = nlog.some((x) => x.param === 'bc' && !x.undone);
+  return updateLoad(gun, nl);
 }
 
 export function replaceGun(s, gun) { return { ...s, guns: s.guns.map((g) => (g.id === gun.id ? gun : g)) }; }
@@ -115,8 +167,19 @@ export function parseBackup(text) {
     if (pb.length) return { ok: false, error: (g.name || 'Arme') + ' : ' + pb[0] };
     if (!g.counter) g.counter = { total: 0, since: 0, log: [] };
   }
+  migrate(s);
   const d = defaultState();
   return { ok: true, state: { ...d, ...s, settings: { ...d.settings, ...(s.settings || {}) }, shot: { ...d.shot, ...(s.shot || {}) }, met: { ...d.met, ...(s.met || {}) }, schema: SCHEMA } };
+}
+
+/** Met un état d'une version antérieure au schéma courant (en place). */
+export function migrate(s) {
+  for (const g of s.guns || []) {
+    if (!Array.isArray(g.sessions)) g.sessions = [];
+    for (const l of g.loads || []) if (!Array.isArray(l.trueLog)) l.trueLog = [];
+  }
+  s.schema = SCHEMA;
+  return s;
 }
 
 export function makeBackup(s) {

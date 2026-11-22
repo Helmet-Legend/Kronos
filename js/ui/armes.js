@@ -4,6 +4,8 @@ import { num, int, dateFr } from './format.js';
 import { app, set, ui, openSheet, confirm, toast, M } from '../app.js';
 import { gunSheet, loadSheet, catalogSheet, shotsSheet } from './sheets.js';
 import { millerSg } from '../engine/solver.js';
+import { carnetSheet, sessionStats } from './carnet.js';
+import { mmToMoa } from '../engine/grouping.js';
 
 const TWIST = { R: 'à droite', L: 'à gauche', '?': 'sens inconnu' };
 
@@ -59,7 +61,8 @@ function gunDetail(g) {
       h('div', { class: 'grid2', style: { marginTop: '10px' } },
         h('button', { class: 'btn small', onClick: () => openSheet('catalog', () => catalogSheet(g.id)) }, 'Depuis le catalogue'),
         h('button', { class: 'btn small', onClick: () => openSheet('load-new', () => loadSheet(g.id, null)) }, 'Saisie manuelle')),
-      kv('Stabilité (Miller)', h('span', { style: { color: sgCol, fontWeight: '700' } }, sgTxt))),
+      kv('Stabilité (Miller)', h('span', { style: { color: sgCol, fontWeight: '700' } }, sgTxt)),
+      carnetCard(g, l)),
 
     h('section', { class: 'card' },
       h('span', { class: 'label' }, 'Compteur de coups'),
@@ -74,6 +77,15 @@ function gunDetail(g) {
         c.log.some((e) => e.k === 'tir') ? h('button', { class: 'btn small ghost block', onClick: () => confirm({ title: 'Annuler la dernière saisie ?', text: 'Pour corriger une erreur de frappe. La ligne reste barrée dans l’historique.', ok: 'Annuler la saisie', onOk: () => set((st) => M.replaceGun(st, M.undoLast(st.guns.find((y) => y.id === g.id)))) }) }, 'Annuler la dernière saisie') : null) : null),
 
     s.guns.length > 1 ? h('button', { class: 'btn danger block', onClick: () => confirm({ title: 'Supprimer ' + g.name + ' ?', text: 'L’arme, ses munitions et son compteur (' + int(c.total) + ' coups) seront supprimés. Exportez une sauvegarde avant si besoin.', ok: 'Supprimer', danger: true, onOk: () => { app.armeId = null; set((st) => M.removeGun(st, g.id)); toast('Arme supprimée'); } }) }, 'Supprimer cette arme') : null);
+}
+
+function carnetCard(g, l) {
+  const all = g.sessions || [], forLoad = all.filter((x) => x.loadId === l.id);
+  const avg = forLoad.length ? forLoad.reduce((a, x) => a + mmToMoa(sessionStats(x).es, x.dist), 0) / forLoad.length : null;
+  const sub = all.length ? all.length + ' séance' + (all.length > 1 ? 's' : '') + ' · groupe moyen ' + (avg === null ? '— avec cette munition' : num(avg, 1) + ' MOA avec ' + l.name) : 'Aucune séance : saisissez votre prochaine cible';
+  return h('button', { class: 'item', style: { marginTop: '10px', borderColor: 'var(--cyan)' }, onClick: () => openSheet('carnet-' + g.id, () => carnetSheet(g.id)) },
+    h('span', { class: 'grow' }, h('b', null, 'Carnet de séances'), h('small', null, sub)),
+    h('span', { style: { color: 'var(--cyan)', fontWeight: '700', fontSize: '13px' } }, 'Ouvrir'));
 }
 
 function kv(k, v) { return h('div', { class: 'kv' }, h('span', null, k), h('span', null, v)); }

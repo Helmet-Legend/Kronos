@@ -25,9 +25,11 @@ Kronos est un calculateur balistique hors ligne pour le tir sportif en France : 
 ## Organisation du code
 
 ```
-js/engine/   moteur balistique (SI), sans dépendance au navigateur : drag.js (G1, G7), atmo.js, units.js, solver.js
+js/engine/   moteur balistique (SI), sans dépendance au navigateur : drag.js (G1, G7), atmo.js, units.js, solver.js,
+             grouping.js (groupe, point moyen, coup à froid, clics), truing.js (recalage V0/BC), targets.js (cibles TAR)
 js/data/     model.js (état et opérations pures), store.js, catalog.js, meteo.js
-js/ui/       dom.js (mini h()), format.js, tir.js, table.js, armes.js, reglages.js, sheets.js (panneaux et formulaires)
+js/ui/       dom.js (mini h()), format.js, tir.js, table.js, armes.js, reglages.js, sheets.js (panneaux et formulaires),
+             carnet.js (saisie de séance, carnet, recalage : panneaux à état local redessinés par draw())
 js/app.js    état unique, set(), rendu complet à chaque changement, panneaux, wake lock, service worker
 tests/       node:test (npm test) + tests/ui_check.py (Playwright + Chrome headless, parcours complet)
 ```
@@ -55,14 +57,20 @@ Le zéro est calculé dans l'atmosphère ICAO par défaut (`zeroMet`).
 
 Pas encore fait : effet Coriolis, comparaison à des relevés réels au-delà de 800 m.
 
-## État : phase 1 terminée (v0.1.1)
+## État (v0.3.0, branche `claude/nuit-moteur-carnet`)
 
-Écran Tir (corrections en clics et sens, ou tenue en cm en visée mécanique ; distance, vent à l'horloge, angle ; vitesse, énergie, temps de vol, Mach), météo auto et manuelle (station ou QNH), table de tir, armes et munitions (catalogue et saisie manuelle), stabilité de Miller, compteur de coups (total jamais effacé, compteur depuis le nettoyage, annulation de la dernière saisie), thèmes sombre/clair/nuit, paysage, wake lock, sauvegarde, hors ligne. 34 tests node et le parcours UI passent.
+Écran Tir (corrections en clics et sens, ou tenue en cm en visée mécanique ; distance, vent à l'horloge, angle ; vitesse, énergie, temps de vol, Mach), météo auto et manuelle (station ou QNH), table de tir, armes et munitions (catalogue et saisie manuelle), stabilité de Miller, compteur de coups (total jamais effacé, compteur depuis le nettoyage, annulation de la dernière saisie), thèmes sombre/clair/nuit, paysage, wake lock, sauvegarde, hors ligne. v0.2.0 : moteur validé jusqu'à 1 000 m (voir Validation). v0.3.0 : carnet de séance et recalage V0/BC (étapes 1 et 2 ci-dessous). 67 tests node et le parcours UI passent.
+
+Schéma de données 2 (`SCHEMA` dans `model.js`, migration `migrate()` appliquée au chargement et à l'import) :
+- `gun.sessions[]` : `{ id, d, dist, loadId, loadName, target, coldFirst, met, wind, shots: [{x, y}] }`, impacts en mm, origine au point visé, y vers le haut. Aucune valeur dérivée stockée : `groupStats()` recalcule.
+- `load.trueLog[]` : `{ id, d, dist, dyCm, param: 'v0'|'bc', from, to, sessionId, undone? }`, `load.bcTrued` si un recalage BC est actif.
+- La photo de cible n'est pas conservée (elle sert seulement à placer les impacts).
+- Le diamètre du noir des cibles TAR reste indicatif (`blackConfirmed: false` dans `targets.js`) : à confirmer sur le règlement.
 
 ## Prochaines étapes (déjà maquettées, voir la maquette et le cahier des charges)
 
-1. **Carnet de séance** : photo de la cible, impacts touchés à l'écran, groupement (cm, MOA), point moyen, coup à froid (1er impact exclu du point moyen), enregistrement qui ajoute les coups aux compteurs. Synthèse du coup à froid au bout de 3 séances (écart vertical moyen > 0,05 mrad et > 2× son incertitude).
-2. **Recalage V0 / BC** : bisection sur la V0 (±150 m/s) ou le BC (×0,6 à ×1,5) pour que le calcul retombe sur le point moyen observé. On ajuste le BC si la V0 est mesurée au chrono, sinon la V0. Refus en dessous de 300 m et si l'écart est inférieur à 2 × (rayon moyen / √n). Historique des recalages.
+1. ~~**Carnet de séance**~~ (fait en v0.3.0, sauf redressement de la photo et détection automatique des trous) : photo de la cible, impacts touchés à l'écran, groupement (cm, MOA), point moyen, coup à froid (1er impact exclu du point moyen), enregistrement qui ajoute les coups aux compteurs. Synthèse du coup à froid au bout de 3 séances (écart vertical moyen > 0,05 mrad et > 2× son incertitude).
+2. ~~**Recalage V0 / BC**~~ (fait en v0.3.0) : bisection sur la V0 (±150 m/s) ou le BC (×0,6 à ×1,5) pour que le calcul retombe sur le point moyen observé. On ajuste le BC si la V0 est mesurée au chrono, sinon la V0. Refus en dessous de 300 m et si l'écart est inférieur à 2 × (rayon moyen / √n). Historique des recalages.
 3. **Visée mécanique avancée** : crans de hausse (angle mécanique par cran) avec corrections mesurées et interpolées.
 4. **Zone de confiance à 95 %** : propagation des erreurs par différences finies (V0 ±12 m/s si non mesurée, BC ±5 % ou ±1,5 % si recalé, vent ±25 %, distance ±1 %, dispersion de l'arme).
 5. **Fiche d'identité de l'arme** : n° de série masqué, photos, journal d'entretien, codes fabricants (K98k byf/bcd…, G98, G43, Mosin, SMLE, No4), modèles d'armes avec pas et sens connus.

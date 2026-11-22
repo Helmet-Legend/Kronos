@@ -2,13 +2,15 @@
 
 Calculateur balistique hors ligne pour le tir sportif : application web installable (PWA), sans dépendance, sans compte, sans serveur.
 
-## Ce que fait la phase 1
+## Fonctions
 
 - **Écran Tir** : élévation et dérive en MRAD ou MOA, avec le nombre de clics et le sens. En visée mécanique, la tenue en cm. Vitesse, énergie, temps de vol, régime (supersonique, transsonique, subsonique).
 - **Réglages du tir** : distance (saisie ou ±10/±50 m), vent à l'horloge (12 h = de face, 3 h = de la droite), angle de site.
 - **Météo** : automatique (GPS + Open-Meteo, pression au stand) ou saisie manuelle (pression station ou QNH + altitude). Le vent météo peut être converti en heures si la direction du tir est connue.
 - **Table de tir** : 100 à 1500 m, pas de 25, 50 ou 100 m, avec le vent du moment. La ligne la plus proche de la distance de l'écran Tir est surlignée.
 - **Armes** : plusieurs armes, plusieurs munitions par arme (saisie manuelle ou catalogue), lunette ou visée mécanique, stabilité de Miller.
+- **Carnet de séance** : cible C200, C200 50 %, C50 ou quadrillage (ou photo de la cible), impacts touchés à l'écran avec zoom, groupement (cm, MOA), rayon moyen, point moyen, clics pour recentrer, coup à froid (1er impact exclu du point moyen). Les coups s'ajoutent aux compteurs. Synthèse du coup à froid au bout de 3 séances, affichée aussi sur l'écran Tir.
+- **Recalage V0 / BC** : à partir d'une séance ou d'un écart saisi, Kronos ajuste la V0 (non mesurée) ou le BC (V0 mesurée) pour retomber sur le point moyen. Refus en dessous de 300 m (ou 2 × le zéro) et si l'écart n'est pas significatif. Historique daté, dernier recalage annulable.
 - **Compteur de coups** : total jamais remis à zéro, compteur depuis le dernier nettoyage, historique, annulation de la dernière saisie.
 - **Thèmes** : sombre, clair (plein soleil), nuit (rouge sur noir). Disposition paysage au stand.
 - **Écran toujours allumé** sur l'écran Tir (Wake Lock, si le navigateur le permet).
@@ -51,7 +53,7 @@ python3 tests/ui_check.py      # parcours complet dans Chrome sans écran (Playw
 ```
 index.html, manifest.webmanifest, sw.js   application installable et hors ligne
 css/app.css                               thèmes et mises en page portrait et paysage
-js/engine/                                moteur balistique (SI), sans dépendance au navigateur
+js/engine/                                moteur balistique (SI), groupement, recalage, cibles TAR ; sans dépendance au navigateur
 js/data/                                  modèle, stockage, catalogue, météo
 js/ui/                                    écrans et panneaux
 tests/                                    tests automatiques

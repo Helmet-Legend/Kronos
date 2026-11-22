@@ -16,7 +16,7 @@ def shot(page, name):
     if OUT: page.screenshot(path=os.path.join(OUT, name + '.png'))
 
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
+    b = p.chromium.launch(executable_path=os.environ.get('CHROME', '/usr/bin/google-chrome'), args=['--no-sandbox'])
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, locale='fr-FR')
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
@@ -39,6 +39,27 @@ with sync_playwright() as p:
     page.get_by_role('button', name='Table', exact=True).click(); page.wait_for_selector('.ttable')
     assert page.locator('.ttable tbody tr').count() == 19
     shot(page, '03-table')
+    # carnet de séance : 6 impacts dont le coup à froid, enregistrement, recalage à partir de la séance
+    page.locator('nav.tabs button', has_text='Tir').click()
+    page.fill('.dist-val', '600'); page.keyboard.press('Enter'); page.wait_for_timeout(100)
+    page.get_by_role('button', name='Saisir une séance').click(); page.wait_for_selector('.sheet .target')
+    page.get_by_role('button', name='Quadrillage').click(); page.get_by_role('button', name='Zoom 2 fois').click()
+    bx = page.locator('.sheet .target svg').bounding_box()
+    for x, y in [(60, 70), (0, -60), (10, -70), (-8, -55), (5, -45), (-4, -66)]:
+        page.mouse.click(bx['x'] + (0.5 + x / 250) * bx['width'], bx['y'] + (0.5 - y / 250) * bx['height'])
+    assert '6 impacts' in page.inner_text('.sheet'), page.inner_text('.sheet')
+    assert 'Coup à froid' in page.inner_text('.sheet .notice.info')
+    shot(page, '08-seance')
+    page.locator('.sheet').get_by_role('button', name='Enregistrer').click()
+    page.wait_for_selector('.sheet h3:has-text("Carnet de séances")')
+    shot(page, '09-carnet')
+    page.locator('.sheet .item').first.click(); page.wait_for_selector('.sheet h3:has-text("Recaler la munition")')
+    assert '→' in page.inner_text('.sheet') and 'm/s' in page.inner_text('.sheet')
+    shot(page, '10-recalage')
+    page.get_by_role('button', name='Appliquer à la munition').click()
+    assert 'V0 recalée' in page.inner_text('.toast')
+    page.get_by_role('button', name='Fermer').click()
+    page.locator('nav.tabs button', has_text='Table').click(); page.wait_for_selector('.ttable')
     # armes : ajout depuis le catalogue
     page.locator('nav.tabs button', has_text='Armes').click()
     page.locator('.item', has_text='Carabine .308').click()
@@ -51,7 +72,7 @@ with sync_playwright() as p:
     # compteur
     page.get_by_role('button', name='+ Coups').click(); page.get_by_role('button', name='+20').click()
     page.get_by_role('button', name='Nettoyage fait').click(); page.locator('.sheet').get_by_role('button', name='Nettoyage fait').click()
-    t = page.inner_text('main'); assert '20' in t
+    t = page.inner_text('main'); assert '26' in t, t  # 6 coups de la séance + 20
     # nouvelle arme avec erreur puis correction
     page.get_by_role('button', name='Retour à la liste').click()
     page.get_by_role('button', name='+ Ajouter une arme').click()

@@ -3,6 +3,7 @@ import { h } from './dom.js';
 import { num, abs, int, timeFr, parseNum } from './format.js';
 import { app, set, compute, openSheet, ui } from '../app.js';
 import { meteoSheet, shotsSheet } from './sheets.js';
+import { sessionSheet, coldAdvice } from './carnet.js';
 
 const setShot = (o) => set((s) => ({ ...s, shot: { ...s.shot, ...o } }));
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -96,11 +97,16 @@ export function renderTir() {
 
   const notes = [];
   if (r && r.reached && regime !== 'super') notes.push(h('div', { class: 'notice' }, regime === 'trans' ? 'Zone transsonique : la balle ralentit vers Mach 1, la précision du calcul baisse. Recalez sur vos impacts.' : 'Balle subsonique : calcul indicatif.'));
-  if (!load.measured) notes.push(h('div', { class: 'notice info' }, 'V0 non mesurée (' + int(load.v0) + ' m/s annoncés) : au-delà de 300 m, mesurez-la au chrono pour fiabiliser le calcul.'));
+  const v0Trued = (load.trueLog || []).some((e) => e.param === 'v0' && !e.undone);
+  if (!load.measured && !v0Trued) notes.push(h('div', { class: 'notice info' }, 'V0 non mesurée (' + int(load.v0) + ' m/s annoncés) : au-delà de 300 m, mesurez-la au chrono ou recalez-la sur une séance.'));
 
-  const actions = h('div', { class: 'grid2 c-actions' },
-    h('button', { class: 'btn', onClick: () => ui({ view: 'table' }) }, 'Table de tir'),
-    h('button', { class: 'btn', onClick: () => openSheet('shots', shotsSheet) }, 'Compter des coups'));
+  const cold = coldAdvice(gun, sh.dist);
+  if (cold && cold.tir) notes.unshift(h('div', { class: 'notice info' }, h('b', { style: { color: 'var(--violet)' } }, 'Coup à froid · '), cold.tir + ' (' + cold.n + ' séances)'));
+
+  const actions = h('div', { class: 'grid3 c-actions' },
+    h('button', { class: 'btn', 'aria-label': 'Table de tir', onClick: () => ui({ view: 'table' }) }, h('span', { class: 'lg' }, 'Table de tir'), h('span', { class: 'sm' }, 'Table')),
+    h('button', { class: 'btn', 'aria-label': 'Saisir une séance', style: { borderColor: 'var(--amber)', color: 'var(--amber)' }, onClick: () => openSheet('session', sessionSheet) }, h('span', { class: 'lg' }, 'Saisir une séance'), h('span', { class: 'sm' }, 'Séance')),
+    h('button', { class: 'btn', 'aria-label': 'Compter des coups', onClick: () => openSheet('shots', shotsSheet) }, h('span', { class: 'lg' }, 'Compter des coups'), h('span', { class: 'sm' }, 'Coups')));
 
   return h('main', { class: 'tir' }, metPill, hero, stats, dist, wind, angle, notes.length ? h('div', { class: 'c-notes', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, notes) : null, actions);
 }
