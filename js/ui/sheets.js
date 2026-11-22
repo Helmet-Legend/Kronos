@@ -128,6 +128,7 @@ export function gunSheet(gunId) {
   const click = field('Valeur d’un clic', g.sight.click ?? 0.1, { help: 'MRAD : souvent 0,1 · MOA : souvent 0,25 (1/4) ou 0,125 (1/8)' });
   const sightH = field('Hauteur de visée (mm)', Math.round(g.sightH * 1000), { help: 'Du centre du canon au centre de la lunette ou du guidon' });
   const zero = field('Distance de zéro (m)', g.zero);
+  const disp = field('Dispersion arme + tireur (MOA)', g.dispersionMoa ?? 1.5, { help: 'Votre groupement habituel à 100 m en MOA (1 MOA ≈ 2,9 cm). Sert à la zone probable d’impact.' });
   const presets = h('div', { class: 'chips' }, SIGHTS.map((p) => h('button', { class: 'chip', type: 'button', onClick: () => {
     kind.sel.value = p.kind; if (p.unit) unit.sel.value = p.unit; if (p.click) click.input.value = String(p.click).replace('.', ','); sightH.input.value = String(Math.round(p.sightH * 1000)); sync();
   } }, p.name)));
@@ -139,7 +140,7 @@ export function gunSheet(gunId) {
   const save = () => {
     const ng = { ...g, name: name.get(), cal: cal.get(), barrelMm: barrel.get(), twist: twist.get(), twistDir: dir.get(),
       sight: kind.get() === 'scope' ? { kind: 'scope', unit: unit.get(), click: click.get() } : { kind: 'iron' },
-      sightH: sightH.get() / 1000, zero: zero.get() };
+      sightH: sightH.get() / 1000, zero: zero.get(), dispersionMoa: disp.get() };
     const e = M.checkGun(ng);
     if (e.length) { errors.textContent = e.join(' · '); return; }
     if (isNew) app.armeId = ng.id;
@@ -148,7 +149,7 @@ export function gunSheet(gunId) {
   };
   return frame(isNew ? 'Nouvelle arme' : 'Modifier l’arme',
     name.el, cal.el, h('div', { class: 'grid2' }, barrel.el, twist.el), dir.el,
-    h('h2', null, 'Visée'), presets, kind.el, scopeBox, h('div', { class: 'grid2' }, sightH.el, zero.el),
+    h('h2', null, 'Visée'), presets, kind.el, scopeBox, h('div', { class: 'grid2' }, sightH.el, zero.el), disp.el,
     errors, h('button', { class: 'btn primary block', onClick: save }, 'Enregistrer'));
 }
 

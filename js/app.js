@@ -10,7 +10,7 @@ import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 export const app = {
   state: M.defaultState(),
@@ -59,13 +59,8 @@ export function metForCalc(s) {
 /** Résout le profil actif pour une liste de distances. */
 export function compute(s, distances) {
   const g = M.activeGun(s), l = M.activeLoad(g);
-  return {
-    gun: g, load: l,
-    res: solve({
-      gun: { sightH: g.sightH, zero: g.zero, twist: g.twist, twistDir: g.twistDir },
-      sight: g.sight, load: l, met: metForCalc(s), shot: s.shot, distances
-    })
-  };
+  const args = { gun: { sightH: g.sightH, zero: g.zero, twist: g.twist, twistDir: g.twistDir }, sight: g.sight, load: l, met: metForCalc(s), shot: s.shot };
+  return { gun: g, load: l, args, res: solve({ ...args, distances }) };
 }
 
 /* ---------- Écran toujours allumé (Wake Lock) ---------- */

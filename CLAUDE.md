@@ -26,7 +26,8 @@ Kronos est un calculateur balistique hors ligne pour le tir sportif en France : 
 
 ```
 js/engine/   moteur balistique (SI), sans dépendance au navigateur : drag.js (G1, G7), atmo.js, units.js, solver.js,
-             grouping.js (groupe, point moyen, coup à froid, clics), truing.js (recalage V0/BC), targets.js (cibles TAR)
+             grouping.js (groupe, point moyen, coup à froid, clics), truing.js (recalage V0/BC), targets.js (cibles TAR),
+             confidence.js (zone probable 95 % : facteurs à 1 σ, zone ±2 σ, mêmes seuils que la maquette)
 js/data/     model.js (état et opérations pures), store.js, catalog.js, meteo.js, crypto.js (sauvegarde chiffrée AES-GCM / PBKDF2)
 js/ui/       dom.js (mini h()), format.js, tir.js, table.js, armes.js, reglages.js, sheets.js (panneaux et formulaires),
              carnet.js (saisie de séance, carnet, recalage : panneaux à état local redessinés par draw())
@@ -59,7 +60,7 @@ Pas encore fait : effet Coriolis, comparaison à des relevés réels au-delà de
 
 ## État (v0.3.0, branche `claude/nuit-moteur-carnet`)
 
-Écran Tir (corrections en clics et sens, ou tenue en cm en visée mécanique ; distance, vent à l'horloge, angle ; vitesse, énergie, temps de vol, Mach), météo auto et manuelle (station ou QNH), table de tir, armes et munitions (catalogue et saisie manuelle), stabilité de Miller, compteur de coups (total jamais effacé, compteur depuis le nettoyage, annulation de la dernière saisie), thèmes sombre/clair/nuit, paysage, wake lock, sauvegarde, hors ligne. v0.2.0 : moteur validé jusqu'à 1 000 m (voir Validation). v0.3.0 : carnet de séance et recalage V0/BC (étapes 1 et 2 ci-dessous). v0.4.0 : export chiffré, import avec mot de passe et aperçu, rappel de sauvegarde (phase 2 du cahier, sans le choix « fusionner » à l'import). 67 tests node et le parcours UI passent.
+Écran Tir (corrections en clics et sens, ou tenue en cm en visée mécanique ; distance, vent à l'horloge, angle ; vitesse, énergie, temps de vol, Mach), météo auto et manuelle (station ou QNH), table de tir, armes et munitions (catalogue et saisie manuelle), stabilité de Miller, compteur de coups (total jamais effacé, compteur depuis le nettoyage, annulation de la dernière saisie), thèmes sombre/clair/nuit, paysage, wake lock, sauvegarde, hors ligne. v0.2.0 : moteur validé jusqu'à 1 000 m (voir Validation). v0.3.0 : carnet de séance et recalage V0/BC (étapes 1 et 2 ci-dessous). v0.5.0 : zone probable à 95 % sur l'écran Tir (`gun.dispersionMoa`, réglable dans la fiche d'arme, 1,5 par défaut) ; en paysage une ligne résumée, l'écran tient sans défiler (vérifié dans ui_check). v0.4.0 : export chiffré, import avec mot de passe et aperçu, rappel de sauvegarde (phase 2 du cahier, sans le choix « fusionner » à l'import). 67 tests node et le parcours UI passent.
 
 Schéma de données 2 (`SCHEMA` dans `model.js`, migration `migrate()` appliquée au chargement et à l'import) :
 - `gun.sessions[]` : `{ id, d, dist, loadId, loadName, target, coldFirst, met, wind, shots: [{x, y}] }`, impacts en mm, origine au point visé, y vers le haut. Aucune valeur dérivée stockée : `groupStats()` recalcule.
@@ -73,7 +74,7 @@ Schéma de données 2 (`SCHEMA` dans `model.js`, migration `migrate()` appliqué
 1. ~~**Carnet de séance**~~ (fait en v0.3.0, sauf redressement de la photo et détection automatique des trous) : photo de la cible, impacts touchés à l'écran, groupement (cm, MOA), point moyen, coup à froid (1er impact exclu du point moyen), enregistrement qui ajoute les coups aux compteurs. Synthèse du coup à froid au bout de 3 séances (écart vertical moyen > 0,05 mrad et > 2× son incertitude).
 2. ~~**Recalage V0 / BC**~~ (fait en v0.3.0) : bisection sur la V0 (±150 m/s) ou le BC (×0,6 à ×1,5) pour que le calcul retombe sur le point moyen observé. On ajuste le BC si la V0 est mesurée au chrono, sinon la V0. Refus en dessous de 300 m et si l'écart est inférieur à 2 × (rayon moyen / √n). Historique des recalages.
 3. **Visée mécanique avancée** : crans de hausse (angle mécanique par cran) avec corrections mesurées et interpolées.
-4. **Zone de confiance à 95 %** : propagation des erreurs par différences finies (V0 ±12 m/s si non mesurée, BC ±5 % ou ±1,5 % si recalé, vent ±25 %, distance ±1 %, dispersion de l'arme).
+4. ~~**Zone de confiance à 95 %**~~ (fait en v0.5.0) : propagation des erreurs par différences finies (V0 ±12 m/s si non mesurée, BC ±5 % ou ±1,5 % si recalé, vent ±25 %, distance ±1 %, dispersion de l'arme).
 5. **Fiche d'identité de l'arme** : n° de série masqué, photos, journal d'entretien, codes fabricants (K98k byf/bcd…, G98, G43, Mosin, SMLE, No4), modèles d'armes avec pas et sens connus.
 6. **Développement de charge** (rechargement, sans tables Malfatti), **cibles et épreuves TAR** (C200, C200 50 %, C50 ; épreuves 810, 813, 815, 823), chrono de match.
 7. **Dossier « Séances contrôlées »**, à part et verrouillé. Première demande en catégorie B : 3 séances sur 12 mois, espacées d'au moins 2 mois. Le carnet papier est supprimé depuis 2020 : le registre du club fait foi, l'app tient un relevé personnel non officiel. Visa signé au doigt, fiche verrouillée après signature, relevé PDF.

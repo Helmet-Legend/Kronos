@@ -23,6 +23,7 @@ with sync_playwright() as p:
     page.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' else None)
     page.goto(URL); page.wait_for_selector('.corr')
     assert 'clics HAUT' in page.inner_text('.hero'), page.inner_text('.hero')
+    assert 'cm vertical' in page.inner_text('.conf') and 'Arme' in page.inner_text('.conf'), 'zone probable absente'
     shot(page, '01-tir')
     el0 = page.inner_text('.corr .val')
     page.get_by_role('button', name='Plus 50 mètres').click()
@@ -101,6 +102,8 @@ with sync_playwright() as p:
     page.locator('nav.tabs button', has_text='Réglages').click(); page.get_by_role('button', name='Sombre', exact=True).click()
     page.locator('nav.tabs button', has_text='Tir').click(); page.wait_for_timeout(100)
     shot(page, '07-paysage')
+    over = page.evaluate('(() => { const m = document.querySelector("main"); return m.scrollHeight - m.clientHeight; })()')
+    assert over <= 0, f'paysage : {over} px à faire défiler'
     # export
     page.locator('nav.tabs button', has_text='Réglages').click()
     page.get_by_role('button', name='Exporter').first.click(); page.wait_for_selector('.sheet h3:has-text("Exporter")')

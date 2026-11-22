@@ -5,6 +5,7 @@ Calculateur balistique hors ligne pour le tir sportif : application web installa
 ## Fonctions
 
 - **Écran Tir** : élévation et dérive en MRAD ou MOA, avec le nombre de clics et le sens. En visée mécanique, la tenue en cm. Vitesse, énergie, temps de vol, régime (supersonique, transsonique, subsonique).
+- **Zone probable d'impact (95 %)** : propagation des incertitudes (V0, BC, vent, distance, sens des rayures, dispersion arme + tireur), part de chaque facteur et conseil qui réduit le plus la zone.
 - **Réglages du tir** : distance (saisie ou ±10/±50 m), vent à l'horloge (12 h = de face, 3 h = de la droite), angle de site.
 - **Météo** : automatique (GPS + Open-Meteo, pression au stand) ou saisie manuelle (pression station ou QNH + altitude). Le vent météo peut être converti en heures si la direction du tir est connue.
 - **Table de tir** : 100 à 1500 m, pas de 25, 50 ou 100 m, avec le vent du moment. La ligne la plus proche de la distance de l'écran Tir est surlignée.

@@ -4,13 +4,14 @@ import { num, abs, int, timeFr, parseNum } from './format.js';
 import { app, set, compute, openSheet, ui } from '../app.js';
 import { meteoSheet, shotsSheet } from './sheets.js';
 import { sessionSheet, coldAdvice } from './carnet.js';
+import { confidence } from '../engine/confidence.js';
 
 const setShot = (o) => set((s) => ({ ...s, shot: { ...s.shot, ...o } }));
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 export function renderTir() {
   const s = app.state, sh = s.shot;
-  const { gun, load, res } = compute(s, [sh.dist]);
+  const { gun, load, res, args } = compute(s, [sh.dist]);
   const r = res.rows[0];
   const scope = gun.sight.kind === 'scope';
   const unit = scope ? gun.sight.unit : 'mrad';
@@ -60,6 +61,15 @@ export function renderTir() {
     h('div', { class: 'stat' }, h('span', null, 'Vol'), h('b', { class: 'mono' }, num(r.t, 2)), h('span', { class: 'muted', style: { fontSize: '11px' } }, 's')),
     h('div', { class: 'stat' + (regime === 'trans' ? ' warn' : regime === 'sub' ? ' bad' : '') }, h('span', null, 'Mach'), h('b', { class: 'mono' }, num(r.mach, 2)), h('span', { class: 'muted', style: { fontSize: '11px' } }, regime === 'super' ? 'supersonique' : regime === 'trans' ? 'transsonique' : 'subsonique'))) : null;
 
+  const conf = r && r.reached ? confidence(args, sh.dist, gun.dispersionMoa) : null;
+  const confCard = conf ? h('section', { class: 'card conf c-conf', 'aria-label': 'Zone probable d’impact à 95 %' },
+    h('div', { class: 'row' }, h('span', { class: 'label grow' }, 'Zone probable (95 %)'), h('span', { class: 'lvl ' + conf.level.toLowerCase() }, 'Confiance ' + conf.level.toLowerCase())),
+    h('div', { class: 'mono', style: { fontSize: '15px', fontWeight: '700', margin: '4px 0' } }, '±' + num(2 * conf.sy * 100, 0) + ' cm vertical · ±' + num(2 * conf.sz * 100, 0) + ' cm latéral'),
+    h('div', { class: 'bars' }, conf.rows.filter((x) => x.pct > 0).map((x) => h('div', { class: 'bar' + (x.k === conf.main ? ' main' : '') },
+      h('span', null, x.k), h('span', { class: 'track' }, h('span', { style: { width: Math.max(2, x.pct) + '%' } })), h('span', { class: 'mono' }, x.pct + ' %')))),
+    h('div', { class: 'muted hint', style: { fontSize: '12px', marginTop: '6px', lineHeight: '1.4' } }, conf.advice ? 'Conseil : ' + conf.advice.hint + ' réduirait la zone d’environ ' + conf.advice.reduction + ' %.' : 'Données bien maîtrisées : la dispersion de l’arme domine.'),
+    h('div', { class: 'short' }, h('b', null, 'Zone 95 % : '), h('span', { class: 'mono' }, '±' + num(2 * conf.sy * 100, 0) + ' × ±' + num(2 * conf.sz * 100, 0) + ' cm'), h('br'), h('span', { class: 'lvl-txt ' + conf.level.toLowerCase() }, 'confiance ' + conf.level.toLowerCase()), ' · facteur : ' + conf.main)) : null;
+
   const distInput = h('input', { class: 'dist-val mono', type: 'number', inputmode: 'numeric', min: '10', max: '2500', step: '10', value: String(sh.dist), 'aria-label': 'Distance en mètres',
     onChange: (e) => { const v = parseNum(e.target.value); if (isFinite(v)) setShot({ dist: clamp(Math.round(v), 10, 2500) }); } });
   const dist = h('section', { class: 'card c-dist' },
@@ -98,7 +108,7 @@ export function renderTir() {
   const notes = [];
   if (r && r.reached && regime !== 'super') notes.push(h('div', { class: 'notice' }, regime === 'trans' ? 'Zone transsonique : la balle ralentit vers Mach 1, la précision du calcul baisse. Recalez sur vos impacts.' : 'Balle subsonique : calcul indicatif.'));
   const v0Trued = (load.trueLog || []).some((e) => e.param === 'v0' && !e.undone);
-  if (!load.measured && !v0Trued) notes.push(h('div', { class: 'notice info' }, 'V0 non mesurée (' + int(load.v0) + ' m/s annoncés) : au-delà de 300 m, mesurez-la au chrono ou recalez-la sur une séance.'));
+  if (!load.measured && !v0Trued) notes.push(h('div', { class: 'notice info v0note' }, 'V0 non mesurée (' + int(load.v0) + ' m/s annoncés) : au-delà de 300 m, mesurez-la au chrono ou recalez-la sur une séance.'));
 
   const cold = coldAdvice(gun, sh.dist);
   if (cold && cold.tir) notes.unshift(h('div', { class: 'notice info' }, h('b', { style: { color: 'var(--violet)' } }, 'Coup à froid · '), cold.tir + ' (' + cold.n + ' séances)'));
@@ -108,5 +118,5 @@ export function renderTir() {
     h('button', { class: 'btn', 'aria-label': 'Saisir une séance', style: { borderColor: 'var(--amber)', color: 'var(--amber)' }, onClick: () => openSheet('session', sessionSheet) }, h('span', { class: 'lg' }, 'Saisir une séance'), h('span', { class: 'sm' }, 'Séance')),
     h('button', { class: 'btn', 'aria-label': 'Compter des coups', onClick: () => openSheet('shots', shotsSheet) }, h('span', { class: 'lg' }, 'Compter des coups'), h('span', { class: 'sm' }, 'Coups')));
 
-  return h('main', { class: 'tir' }, metPill, hero, stats, dist, wind, angle, notes.length ? h('div', { class: 'c-notes', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, notes) : null, actions);
+  return h('main', { class: 'tir' }, metPill, hero, stats, confCard, dist, wind, angle, notes.length ? h('div', { class: 'c-notes', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, notes) : null, actions);
 }

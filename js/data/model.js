@@ -17,6 +17,7 @@ export function newGun(o = {}) {
     loads: [load], loadId: load.id,
     counter: { total: 0, since: 0, log: [] },
     sessions: [],
+    dispersionMoa: 1.5,
     ...o
   };
 }
@@ -30,9 +31,9 @@ export function defaultState() {
     settings: { theme: 'dark', tableFrom: 100, tableTo: 1000, tableStep: 50, wakeLock: true, lastBackupIso: null, changesSinceBackup: 0 },
     guns: [
       { id: 'arme_tld', name: 'Carabine .308', cal: '.308 Winchester', barrelMm: 610, twist: 279, twistDir: 'R', sight: { kind: 'scope', unit: 'MRAD', click: 0.1 }, sightH: 0.045, zero: 100,
-        loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] }, sessions: [] },
+        loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 1 },
       { id: 'arme_k98', name: 'Mauser K98k', cal: '7,92x57 IS', barrelMm: 600, twist: 240, twistDir: 'R', sight: { kind: 'iron' }, sightH: 0.028, zero: 100,
-        loads: [ss], loadId: ss.id, counter: { total: 0, since: 0, log: [] }, sessions: [] }
+        loads: [ss], loadId: ss.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 3 }
     ],
     gunId: 'arme_tld',
     shot: { dist: 300, windSpeed: 2, windHour: 3, angleDeg: 0 },
@@ -152,6 +153,7 @@ export function checkGun(g) {
   if (!num(g.zero, 10, 1000)) e.push('Distance de zéro entre 10 et 1000 m');
   if (!num(g.twist, 100, 1000)) e.push('Pas de rayure entre 100 et 1000 mm');
   if (g.sight.kind === 'scope' && !num(g.sight.click, 0.01, 1)) e.push('Valeur de clic entre 0,01 et 1');
+  if (g.dispersionMoa !== undefined && !num(g.dispersionMoa, 0.2, 10)) e.push('Dispersion entre 0,2 et 10 MOA');
   return e;
 }
 
@@ -176,6 +178,7 @@ export function parseBackup(text) {
 export function migrate(s) {
   for (const g of s.guns || []) {
     if (!Array.isArray(g.sessions)) g.sessions = [];
+    if (typeof g.dispersionMoa !== 'number') g.dispersionMoa = 1.5;
     for (const l of g.loads || []) if (!Array.isArray(l.trueLog)) l.trueLog = [];
   }
   s.schema = SCHEMA;
