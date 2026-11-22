@@ -74,6 +74,17 @@ with sync_playwright() as p:
     page.wait_for_selector('.sheet h3:has-text("Nouvelle munition")')
     page.locator('.sheet').get_by_role('button', name='Enregistrer').click()
     assert 'Lapua 167 gr Scenar' in page.inner_text('main')
+    # chronographe : trois mesures sur 20 °C, puis application à la munition
+    page.locator('main button', has_text='Chronographe').click(); page.wait_for_selector('.sheet h3:has-text("Chronographe")')
+    for t, v in [('5', '780'), ('15', '786'), ('25', '791')]:
+        page.get_by_label('Température de la poudre (°C)').fill(t); page.get_by_label('V0 moyenne (m/s)').fill(v)
+        page.get_by_role('button', name='Ajouter la mesure').click()
+    assert 'Sensibilité apprise' in page.inner_text('.sheet'), page.inner_text('.sheet')
+    shot(page, '04b-chrono')
+    page.get_by_role('button', name='Appliquer V0 et sensibilité').click()
+    assert 'V0 mesurée' in page.inner_text('.toast')
+    page.get_by_role('button', name='Fermer').click()
+    assert 'mesurée' in page.inner_text('main')
     # compteur
     page.get_by_role('button', name='+ Coups').click(); page.get_by_role('button', name='+20').click()
     page.get_by_role('button', name='Nettoyage fait').click(); page.locator('.sheet').get_by_role('button', name='Nettoyage fait').click()

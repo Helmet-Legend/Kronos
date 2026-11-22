@@ -6,7 +6,7 @@ export const uid = (p = 'id') => p + '_' + Math.random().toString(36).slice(2, 9
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export function newLoad(o = {}) {
-  return { id: uid('mun'), name: 'Nouvelle munition', bc: 0.45, model: 'G1', v0: 800, refTemp: 15, sens: 0, grains: 168, dMm: 7.82, lenMm: 31, measured: false, trueLog: [], ...o };
+  return { id: uid('mun'), name: 'Nouvelle munition', bc: 0.45, model: 'G1', v0: 800, refTemp: 15, sens: 0, grains: 168, dMm: 7.82, lenMm: 31, measured: false, trueLog: [], chronoLog: [], ...o };
 }
 
 export function newGun(o = {}) {
@@ -89,6 +89,37 @@ export function addSession(gun, o) {
 /** Supprime une séance du carnet (les coups restent comptés : le compteur ne baisse jamais). */
 export function removeSession(gun, id) {
   return { ...gun, sessions: (gun.sessions || []).filter((x) => x.id !== id) };
+}
+
+/* ---------- Chronographe ---------- */
+
+/** Ajoute une mesure de V0 au chronographe (température de la poudre, moyenne, nombre de tirs, écart-type). */
+export function addChrono(gun, loadId, m) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  if (!l) return gun;
+  const e = { id: uid('chrono'), d: m.d || todayIso(), t: m.t, v0: m.v0, n: m.n || null, sd: m.sd || null };
+  return updateLoad(gun, { ...l, chronoLog: [...(l.chronoLog || []), e] });
+}
+
+export function removeChrono(gun, loadId, id) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  if (!l) return gun;
+  return updateLoad(gun, { ...l, chronoLog: (l.chronoLog || []).filter((e) => e.id !== id) });
+}
+
+/**
+ * V0 mesurée appliquée à la munition. Avec une régression valable : sensibilité et V0 à la température de référence.
+ * Sinon : la dernière mesure ramenée à la température de référence avec la sensibilité actuelle.
+ */
+export function applyChrono(gun, loadId, fit) {
+  const l = gun.loads.find((x) => x.id === loadId);
+  const log = (l && l.chronoLog) || [];
+  if (!l || !log.length) return gun;
+  const ref = l.refTemp ?? 15;
+  let v0, sens = l.sens || 0;
+  if (fit && fit.ok) { sens = Math.round(fit.slope * 100) / 100; v0 = fit.at(ref); } else { const m = log[log.length - 1]; v0 = m.v0 - sens * (m.t - ref); }
+  const sds = log.map((m) => m.sd).filter((x) => x > 0);
+  return updateLoad(gun, { ...l, v0: Math.round(v0), sens, measured: true, sdV0: sds.length ? sds[sds.length - 1] : l.sdV0 });
 }
 
 /* ---------- Hausse graduée ---------- */
@@ -199,7 +230,7 @@ export function migrate(s) {
   for (const g of s.guns || []) {
     if (!Array.isArray(g.sessions)) g.sessions = [];
     if (typeof g.dispersionMoa !== 'number') g.dispersionMoa = 1.5;
-    for (const l of g.loads || []) if (!Array.isArray(l.trueLog)) l.trueLog = [];
+    for (const l of g.loads || []) { if (!Array.isArray(l.trueLog)) l.trueLog = []; if (!Array.isArray(l.chronoLog)) l.chronoLog = []; }
   }
   s.schema = SCHEMA;
   return s;
