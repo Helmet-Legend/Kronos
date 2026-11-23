@@ -1,6 +1,6 @@
 // Mini-hyperscript : h('div', { class, style, onClick, ... }, enfants...)
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const SVG_TAGS = new Set(['svg', 'path', 'circle', 'line', 'polygon', 'rect', 'g', 'text', 'polyline']);
+const SVG_TAGS = new Set(['svg', 'path', 'circle', 'ellipse', 'line', 'polygon', 'polyline', 'rect', 'g', 'text', 'image', 'defs', 'clipPath']);
 
 export function h(tag, props, ...children) {
   const svg = SVG_TAGS.has(tag);
