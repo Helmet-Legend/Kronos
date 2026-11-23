@@ -1,9 +1,9 @@
 // Panneaux du bas : choix du profil, météo, compteur, formulaires, confirmation.
-import { h, icon } from './dom.js';
+import { h, icon, fill } from './dom.js';
 import { num, int, timeFr, parseNum, dateFr } from './format.js';
 import { app, set, closeSheet, openSheet, toast, M } from '../app.js';
 import { fetchMeteo, windHour } from '../data/meteo.js';
-import { AMMO, SIGHTS } from '../data/catalog.js';
+import { AMMO, SIGHTS, DISCIPLINES } from '../data/catalog.js';
 import { qnhFromStation, stationFromQnh } from '../engine/atmo.js';
 import { tipCard } from './aide.js';
 
@@ -193,26 +193,56 @@ export function loadSheet(gunId, loadId, preset) {
     });
     closeSheet(); toast(isNew ? 'Munition ajoutée et sélectionnée' : 'Munition enregistrée');
   };
+  const ref = l.catalogRef;
   return frame(isNew ? 'Nouvelle munition' : 'Modifier la munition',
+    ref && ref.verify ? h('div', { class: 'notice' }, 'Fiche du catalogue à vérifier' + (ref.bcEst ? ' (BC estimé)' : '') + (ref.src ? ' · source : ' + ref.src : '') + '. Contrôlez le BC chez le fabricant et mesurez la V0 au chrono.') : null,
     name.el, h('div', { class: 'grid2' }, model.el, bc.el), h('div', { class: 'grid2' }, v0.el, meas.el), h('div', { class: 'grid2' }, refT.el, sens.el),
     h('h2', null, 'Balle'), h('div', { class: 'grid2' }, gr.el, d.el), len.el,
     errors, h('button', { class: 'btn primary block', onClick: save }, 'Enregistrer'));
 }
 
 /* ---------- Catalogue ---------- */
+const GENERIC = ['Match', 'Réglementaire', 'Standard', 'Générique'];
+/** Nom de munition lisible pour une fiche du catalogue. */
+export const catalogName = (a) => a.cal + ' · ' + (GENERIC.includes(a.brand) ? '' : a.brand + ' ') + a.name;
+/** Munition (champs du moteur) pour une fiche du catalogue. */
+export function catalogPreset(a) {
+  const useG7 = a.g7 > 0;
+  return { name: catalogName(a), model: useG7 ? 'G7' : 'G1', bc: useG7 ? a.g7 : a.g1, v0: a.v0, grains: a.grains, dMm: a.dMm, lenMm: a.lenMm, sens: 0.5,
+    catalogRef: { id: a.id, verify: !!a.verify, bcEst: !!a.bcEst, src: a.src || null } };
+}
+export const bcTxt = (a) => [a.g1 ? 'G1 ' + num(a.g1, 3) : '', a.g7 ? 'G7 ' + num(a.g7, 3) : ''].filter(Boolean).join(' · ');
+
+/** Liste filtrable du catalogue (discipline, recherche). onPick(fiche) ; extra(fiche) : élément ajouté à droite. */
+export function catalogPicker(onPick, o = {}) {
+  const box = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } });
+  const st = { disc: o.cal ? 'same' : 'all', q: '' };
+  const norm = (x) => String(x || '').toLowerCase().replace(/[\s,.]/g, '');
+  const sameCal = (a) => o.cal && norm(a.cal).slice(0, 4) === norm(o.cal).slice(0, 4);
+  const search = h('input', { type: 'search', class: 'search', placeholder: 'Rechercher un calibre ou une balle', 'aria-label': 'Rechercher dans le catalogue', onInput: (e) => { st.q = e.target.value; drawList(); } });
+  const chips = h('div', { class: 'chips', role: 'group', 'aria-label': 'Discipline' });
+  const list = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } });
+  const tabs = [...(o.cal ? [['same', 'Même calibre']] : []), ['all', 'Tout'], ...Object.entries(DISCIPLINES)];
+  function drawChips() { fill(chips, tabs.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(st.disc === k), onClick: () => { st.disc = k; drawChips(); drawList(); } }, l))); }
+  function drawList() {
+    const q = norm(st.q);
+    const items = AMMO.filter((a) => (st.disc === 'all' || (st.disc === 'same' ? sameCal(a) : (a.disc || []).includes(st.disc))) && (!q || norm(a.cal + a.brand + a.name).includes(q)));
+    fill(list, items.length ? items.map((a) => h('div', { class: 'row' },
+      h('button', { class: 'item grow' + (o.selected && o.selected(a) ? ' on' : ''), onClick: () => onPick(a) },
+        h('span', { class: 'grow' }, h('b', null, catalogName(a)),
+          h('small', null, a.grains + ' gr · ' + bcTxt(a) + (a.bcEst ? ' estimé' : '') + ' · ' + a.v0 + ' m/s', a.verify ? h('span', { style: { color: 'var(--amber)' } }, ' · à vérifier') : null))),
+      o.extra ? o.extra(a) : null)) : h('p', { class: 'muted', style: { margin: '0' } }, st.disc === 'same' ? 'Aucune munition de ce calibre : essayez « Tout ».' : 'Aucun résultat.'));
+  }
+  drawChips(); drawList();
+  box.refresh = drawList;
+  return fill(box, search, chips, list);
+}
+
 export function catalogSheet(gunId) {
   const g = app.state.guns.find((x) => x.id === gunId);
-  const pick = (a) => {
-    const useG7 = a.g7 > 0;
-    const preset = { name: a.brand + ' ' + a.name, model: useG7 ? 'G7' : 'G1', bc: useG7 ? a.g7 : a.g1, v0: a.v0, grains: a.grains, dMm: a.dMm, lenMm: a.lenMm, sens: 0.5 };
-    openSheet('load-new', () => loadSheet(gunId, null, preset));
-  };
-  const sameCal = (a) => g.cal && a.cal.replace(/\s/g, '').toLowerCase().slice(0, 4) === g.cal.replace(/\s/g, '').toLowerCase().slice(0, 4);
-  const list = AMMO.slice().sort((a, b) => Number(sameCal(b)) - Number(sameCal(a)));
   return frame('Catalogue de munitions',
-    h('div', { class: 'muted', style: { fontSize: '13px' } }, 'Les données sont reprises dans un formulaire que vous pouvez corriger. Mesurez votre V0 au chrono.'),
-    list.map((a) => h('button', { class: 'item' + (sameCal(a) ? ' on' : ''), onClick: () => pick(a) },
-      h('span', { class: 'grow' }, h('b', null, a.brand + ' · ' + a.name), h('small', null, a.cal + ' · G1 ' + num(a.g1, 3) + (a.g7 ? ' · G7 ' + num(a.g7, 3) : '') + ' · ' + a.v0 + ' m/s')))));
+    h('div', { class: 'muted', style: { fontSize: '13px', lineHeight: '1.45' } }, 'Les données sont reprises dans un formulaire que vous pouvez corriger. Les fiches « à vérifier » viennent de tableaux de synthèse, pas des fabricants : contrôlez le BC sur la boîte ou le site du fabricant et mesurez votre V0 au chrono.'),
+    catalogPicker((a) => openSheet('load-new', () => loadSheet(gunId, null, catalogPreset(a))), { cal: g.cal }));
 }
 
 export { dateFr };

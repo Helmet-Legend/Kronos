@@ -1,9 +1,10 @@
 // Table de tir du profil actif, avec les conditions et le vent du moment.
 import { h } from './dom.js';
 import { num, abs, int } from './format.js';
-import { app, set, compute, cranInfo } from '../app.js';
+import { app, set, compute, cranInfo, openSheet } from '../app.js';
 import { solve } from '../engine/solver.js';
 import { tipCard } from './aide.js';
+import { compareSheet } from './compare.js';
 import { cranAnglesCached, cranTable } from '../engine/tangent.js';
 
 const setSettings = (o) => set((s) => ({ ...s, settings: { ...s.settings, ...o } }));
@@ -68,6 +69,7 @@ export function renderTable() {
       h('div', { class: 'muted', style: { fontSize: '13px', marginTop: '4px' } },
         'Zéro ' + gun.zero + ' m · V0 ' + int(res.v0) + ' m/s · ' + num(s.met.t, 0) + ' °C, ' + int(s.met.p) + ' hPa · vent ' + num(s.shot.windSpeed, 1) + ' m/s de ' + s.shot.windHour + ' h' + (s.shot.angleDeg ? ' · angle ' + s.shot.angleDeg + '°' : ''))),
     profile,
+    h('button', { class: 'btn block', onClick: () => openSheet('compare', compareSheet) }, 'Comparer des munitions'),
     h('div', { class: 'chips', role: 'group', 'aria-label': 'Pas de la table' },
       [25, 50, 100].map((p) => chip('pas ' + p + ' m', st.tableStep === p, () => setSettings({ tableStep: p, tableFrom: p === 25 ? 25 : 100 }))),
       [600, 1000, 1500].map((p) => chip('→ ' + p + ' m', st.tableTo === p, () => setSettings({ tableTo: p })))),
