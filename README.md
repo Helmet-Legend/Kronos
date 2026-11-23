@@ -46,7 +46,7 @@ Il faut servir les fichiers en HTTPS (ou en local) pour que le service worker et
 npm run serve        # python3 -m http.server 8080
 ```
 
-Puis ouvrir `http://localhost:8080`. Sur le téléphone : menu du navigateur, « Ajouter à l'écran d'accueil ». L'application fonctionne ensuite hors ligne.
+Puis ouvrir `http://localhost:8080`. Quand une nouvelle version est publiée, l'application la télécharge en arrière-plan et propose « Mettre à jour » par un bandeau (jamais imposé, les données sont conservées). Sur le téléphone : menu du navigateur, « Ajouter à l'écran d'accueil ». L'application fonctionne ensuite hors ligne.
 
 Hébergement gratuit possible avec GitHub Pages (branche `main`, dossier racine).
 

@@ -13,7 +13,7 @@ import { renderTar } from './ui/tar.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 import { onboardingOverlay, helpSheet } from './ui/aide.js';
 
-const VERSION = '0.11.0';
+const VERSION = '0.11.1';
 
 export const app = {
   state: M.defaultState(),
@@ -26,6 +26,8 @@ export const app = {
   toast: '',
   wake: null,
   persisted: null,   // résultat de navigator.storage.persist()
+  updateReady: false, // une nouvelle version a pris la main : bandeau « Mettre à jour »
+  updateLater: false,
   version: VERSION
 };
 
@@ -152,6 +154,7 @@ export function render() {
     nav(),
     sheet,
     onboardingOverlay(),
+    updateBar(),
     app.toast ? h('div', { class: 'toast', role: 'status' }, app.toast) : null
   ].filter(Boolean));
   main.scrollTop = scroll;
@@ -172,9 +175,36 @@ export async function start() {
   requestWake();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); else flushSave(); });
   window.addEventListener('pagehide', flushSave);
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  }
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') setupUpdates();
+}
+
+/* ---------- Mises à jour : proposées par un bandeau, jamais imposées ---------- */
+const UPDATE_EVERY = 30 * 60 * 1000;
+let lastCheck = 0;
+function setupUpdates() {
+  const sw = navigator.serviceWorker;
+  const hadController = !!sw.controller; // premier lancement : pas de bandeau
+  sw.register('./sw.js').then((reg) => {
+    const check = () => { if (Date.now() - lastCheck < UPDATE_EVERY || !navigator.onLine) return; lastCheck = Date.now(); reg.update().catch(() => {}); };
+    check();
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+  }).catch(() => {});
+  sw.addEventListener('controllerchange', () => { if (hadController) { app.updateReady = true; render(); } });
+}
+
+/** Recharge l'application sur la nouvelle version (sauvegarde en attente écrite avant). */
+export function applyUpdate() {
+  const go = async () => { clearTimeout(saveTimer); saveTimer = null; await store.save(app.state); location.reload(); };
+  if (app.match && !app.match.paused) confirm({ title: 'Mettre à jour maintenant ?', text: 'Une épreuve chronométrée est en cours : elle sera interrompue.', ok: 'Mettre à jour', danger: true, onOk: go });
+  else go();
+}
+
+function updateBar() {
+  if (!app.updateReady || app.updateLater) return null;
+  return h('div', { class: 'update-bar', role: 'status' },
+    h('span', { class: 'grow' }, h('b', null, 'Nouvelle version disponible'), h('small', null, 'Vos données sont conservées.')),
+    h('button', { class: 'btn small ghost', onClick: () => ui({ updateLater: true }) }, 'Plus tard'),
+    h('button', { class: 'btn small primary', onClick: applyUpdate }, 'Mettre à jour'));
 }
 
 export { M, requestWake, releaseWake };

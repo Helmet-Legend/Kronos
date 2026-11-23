@@ -1,5 +1,5 @@
 // Service worker : l'application fonctionne hors ligne (cache d'abord), la météo passe par le réseau.
-const CACHE = 'kronos-v0.11.0';
+const CACHE = 'kronos-v0.11.1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/app.js', './js/ui/dom.js', './js/ui/format.js', './js/ui/tir.js', './js/ui/table.js', './js/ui/armes.js', './js/ui/reglages.js', './js/ui/sheets.js', './js/ui/carnet.js', './js/ui/hausse.js', './js/ui/chrono.js', './js/ui/aide.js', './js/ui/ladder.js', './js/ui/tar.js', './js/ui/compare.js',
