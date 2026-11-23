@@ -150,3 +150,12 @@ test('total des points et chrono de match', () => {
   assert.equal(EVENTS.find((e) => e.id === '815').phases[2][1], 60, '815 : vitesse en 1 min');
   assert.equal(EVENTS.find((e) => e.id === '822').phases[2][3], 'assis sans appui');
 });
+
+import { nearestShot } from '../js/engine/grouping.js';
+test('impact le plus proche du doigt', () => {
+  const s = [{ x: 0, y: 0 }, { x: 30, y: 0 }, { x: 33, y: 2 }];
+  assert.equal(nearestShot(s, { x: 1, y: 1 }, 10), 0);
+  assert.equal(nearestShot(s, { x: 32, y: 1 }, 10), 2);
+  assert.equal(nearestShot(s, { x: 100, y: 100 }, 10), -1);
+  assert.equal(nearestShot([], { x: 0, y: 0 }, 10), -1);
+});

@@ -62,3 +62,10 @@ export function coldBoreSummary(list) {
 export function tapToMm(px, py, w, h, W, H) {
   return { x: Math.round((px / w - 0.5) * W), y: Math.round((0.5 - py / h) * H) };
 }
+
+/** Indice de l'impact le plus proche de p (mm) à moins de maxMm, sinon -1. */
+export function nearestShot(shots, p, maxMm) {
+  let best = -1, bd = Infinity;
+  (shots || []).forEach((q, i) => { const d = Math.hypot(q.x - p.x, q.y - p.y); if (d <= maxMm && d < bd) { bd = d; best = i; } });
+  return best;
+}
