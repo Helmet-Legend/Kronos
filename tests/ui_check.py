@@ -151,6 +151,28 @@ with sync_playwright() as p:
     # persistance après rechargement
     page.wait_for_timeout(400); page.reload(); page.wait_for_selector('.corr')
     assert 'MAS 36' in page.inner_text('.profile'), 'données non conservées'
+    # écran TAR (MAS 36, hausse graduée) : visée à 6 h, points, épreuve chronométrée, enregistrement
+    page.locator('nav.tabs button', has_text='TAR').click(); page.wait_for_selector('main.tar')
+    page.get_by_role('button', name='C200 Mod.75').click(); page.get_by_role('button', name='Visée à 6 h').click()
+    assert 'en visée à 6 h' in page.inner_text('main.tar') and 'Impact prévu' in page.inner_text('main.tar')
+    bx = page.locator('main.tar .target svg').bounding_box()
+    for x, y in [(0, 0), (0, 50)]:
+        page.mouse.click(bx['x'] + (0.5 + x / 850) * bx['width'], bx['y'] + (0.5 - y / 850) * bx['height'])
+    assert '19 pts' in page.inner_text('main.tar'), page.inner_text('main.tar')
+    page.get_by_role('button', name='810 · Répétition manuelle').click(); page.get_by_role('button', name='Démarrer').click()
+    page.wait_for_timeout(1300); assert 'Pause' in page.inner_text('.match')
+    page.get_by_role('button', name='Phase suivante').click(); assert 'Précision' in page.inner_text('.match')
+    assert '0 pts' in page.inner_text('main.tar'), 'une nouvelle épreuve repart de zéro'
+    page.locator('main.tar .target').scroll_into_view_if_needed(); bx = page.locator('main.tar .target svg').bounding_box()
+    for x, y in [(0, 0), (0, 50)]:
+        page.mouse.click(bx['x'] + (0.5 + x / 850) * bx['width'], bx['y'] + (0.5 - y / 850) * bx['height'])
+    assert 'Coups saisis : 2 / 25' in page.inner_text('.match')
+    shot(page, '05b-tar')
+    page.locator('main.tar').get_by_role('button', name='Enregistrer').click()
+    assert 'points' in page.inner_text('.toast'), page.inner_text('.toast')
+    page.get_by_role('button', name='Fermer').click()
+    page.locator('.match').get_by_role('button', name='Arrêter').click(); page.locator('.sheet').get_by_role('button', name='Arrêter').click()
+    page.locator('nav.tabs button', has_text='Tir').click()
     # thème nuit
     page.locator('nav.tabs button', has_text='Réglages').click()
     page.get_by_role('button', name='Nuit (rouge)').click()
@@ -184,7 +206,7 @@ with sync_playwright() as p:
     page.wait_for_selector('.sheet .errors:has-text("Mot de passe incorrect")', timeout=30000)
     page.get_by_label('Mot de passe de la sauvegarde').fill('Kronos-200m'); page.get_by_role('button', name='Déchiffrer').click()
     page.wait_for_selector('.sheet h3:has-text("Restaurer la sauvegarde")', timeout=30000)
-    assert '1 séance' in page.inner_text('.sheet') or '1 séance(s)' in page.inner_text('.sheet'), page.inner_text('.sheet')
+    assert '2 séance(s)' in page.inner_text('.sheet'), page.inner_text('.sheet')  # carnet + série TAR
     page.locator('.sheet').get_by_role('button', name='Restaurer').click()
     assert 'Sauvegarde restaurée' in page.inner_text('.toast')
     # aide : réafficher les bulles et revoir l'accueil

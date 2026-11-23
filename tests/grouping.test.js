@@ -119,3 +119,29 @@ test('recalage avec une hausse graduée : l’angle du cran reste fixe', () => {
   const rezero = trueLoad({ gun: g, sight: iron, load, met, dist: 500, dyM: dy });
   assert.ok(Math.abs(rezero.to - 740) > 2, 'sans angle fixe, le recalage se trompe : ' + rezero.to);
 });
+
+import { EVENTS, aimPoint, totalScore, matchClock } from '../js/engine/targets.js';
+
+test('visuel noir : C200 400 mm (zone 6), C200 50 % 200 mm (zone 6), C50 200 mm (zone 7)', () => {
+  for (const [k, b, z] of [['C200', 400, 6], ['C200_50', 200, 6], ['C50', 200, 7]]) {
+    const t = TARGETS[k];
+    assert.equal(t.black, b); assert.equal(t.blackFrom, z);
+    assert.equal(t.zones[10 - z], b, k + ' : le noir couvre exactement les zones ' + z + ' à 10');
+    assert.ok(t.blackSource);
+  }
+});
+
+test('visée à 6 h : point visé au bas du noir', () => {
+  assert.deepEqual(aimPoint(TARGETS.C200, '6h'), { x: 0, y: -200 });
+  assert.deepEqual(aimPoint(TARGETS.C200, 'centre'), { x: 0, y: 0 });
+  assert.deepEqual(aimPoint(TARGETS.GRID, '6h'), { x: 0, y: 0 });
+});
+
+test('total des points et chrono de match', () => {
+  assert.equal(totalScore(TARGETS.C200, [{ x: 0, y: 0 }, { x: 0, y: 50 }, { x: 900, y: 0 }], 7.8), 19);
+  const ph = EVENTS[0].phases;
+  assert.deepEqual(matchClock(ph, 0), { index: 0, name: 'Essais', left: 300, done: false });
+  assert.deepEqual(matchClock(ph, 310), { index: 1, name: 'Précision', left: 410, done: false });
+  assert.equal(matchClock(ph, 2000).done, true);
+  for (const e of EVENTS) { assert.ok(TARGETS[e.target]); assert.equal(e.verified, false); }
+});

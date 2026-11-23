@@ -9,14 +9,17 @@ import { renderTir } from './ui/tir.js';
 import { renderTable } from './ui/table.js';
 import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
+import { renderTar } from './ui/tar.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 import { onboardingOverlay, helpSheet } from './ui/aide.js';
 
-const VERSION = '0.9.0';
+const VERSION = '0.10.0';
 
 export const app = {
   state: M.defaultState(),
-  view: 'tir',        // tir | table | armes | reglages
+  view: 'tir',        // tir | tar | table | armes | reglages
+  match: null,        // épreuve TAR en cours (non enregistrée) : { eventId, start, pausedAt, paused, lastPhase }
+  tarShots: [],       // impacts touchés sur l'écran TAR (mm, origine au centre de la cible)
   armeId: null,       // fiche d'arme ouverte dans l'onglet Armes
   sheet: null,        // { key, build: () => Element }
   sheetEl: null,
@@ -94,14 +97,14 @@ export function cranInfo(s, args, gun, d) {
 
 /* ---------- Écran toujours allumé (Wake Lock) ---------- */
 async function requestWake() {
-  if (!app.state.settings.wakeLock || app.view !== 'tir' || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  if (!app.state.settings.wakeLock || (app.view !== 'tir' && app.view !== 'tar') || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
   if (app.wake) return;
   try { app.wake = await navigator.wakeLock.request('screen'); app.wake.addEventListener('release', () => { app.wake = null; }); } catch (e) { app.wake = null; }
 }
 function releaseWake() { if (app.wake) { app.wake.release().catch(() => {}); app.wake = null; } }
 
 /* ---------- Rendu ---------- */
-const TABS = [['tir', 'Tir'], ['table', 'Table'], ['armes', 'Armes'], ['reglages', 'Réglages']];
+const TABS = [['tir', 'Tir'], ['tar', 'TAR'], ['table', 'Table'], ['armes', 'Armes'], ['reglages', 'Réglages']];
 const THEMES = { dark: ['light', 'sun', 'Passer en thème clair'], light: ['night', 'eye', 'Passer en mode nuit (rouge)'], night: ['dark', 'moon', 'Passer en thème sombre'] };
 
 function header() {
@@ -119,10 +122,10 @@ function header() {
 
 function nav() {
   return h('nav', { class: 'tabs', 'aria-label': 'Navigation principale' },
-    TABS.map(([k, label]) => h('button', { 'aria-current': app.view === k ? 'page' : null, onClick: () => { ui({ view: k, armeId: k === 'armes' ? app.armeId : null }); k === 'tir' ? requestWake() : releaseWake(); } }, icon(k), label)));
+    TABS.map(([k, label]) => h('button', { 'aria-current': app.view === k ? 'page' : null, onClick: () => { ui({ view: k, armeId: k === 'armes' ? app.armeId : null }); k === 'tir' || k === 'tar' ? requestWake() : releaseWake(); } }, icon(k), label)));
 }
 
-const SCREENS = { tir: renderTir, table: renderTable, armes: renderArmes, reglages: renderReglages };
+const SCREENS = { tir: renderTir, tar: renderTar, table: renderTable, armes: renderArmes, reglages: renderReglages };
 
 export function render() {
   const root = document.getElementById('app');

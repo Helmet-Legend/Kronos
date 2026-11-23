@@ -20,7 +20,7 @@ const TARGET_ORDER = ['C200', 'C200_50', 'C50', 'GRID'];
 export function sessionStats(x) { return groupStats(x.shots, x.coldFirst); }
 
 /* ---------- Dessin de cible (SVG, coordonnées en mm, y vers le haut) ---------- */
-function targetSvg(T, o) {
+export function targetSvg(T, o) {
   const z = o.zoom || 1, W = T.w / z, H = T.h / z;
   const vb = [-W / 2, -H / 2, W, H];
   const pxPerMm = (o.px || 340) / W;
@@ -56,6 +56,7 @@ function targetSvg(T, o) {
     kids.push(h('line', { x1: String(mx - k), y1: String(my), x2: String(mx + k), y2: String(my), stroke: 'var(--cyan)', 'stroke-width': w }));
     kids.push(h('line', { x1: String(mx), y1: String(my - k), x2: String(mx), y2: String(my + k), stroke: 'var(--cyan)', 'stroke-width': w }));
   }
+  if (o.extra) kids.push(...o.extra(pxPerMm));
   return h('svg', { viewBox: vb.join(' '), width: '100%', style: { display: 'block', aspectRatio: T.w + ' / ' + T.h }, 'aria-hidden': 'true' }, kids);
 }
 

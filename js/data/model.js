@@ -82,6 +82,9 @@ export function addSession(gun, o) {
     met: o.met ? { t: o.met.t, p: o.met.p, rh: o.met.rh } : null,
     wind: o.wind ? { speed: o.wind.speed, hour: o.wind.hour } : null,
     cran: o.cran || null,
+    event: o.event || null,
+    aim: o.aim || null,
+    offset: o.offset ? { x: Math.round(o.offset.x), y: Math.round(o.offset.y) } : null,
     shots
   };
   const g = addShots(gun, shots.length, 'séance', rec.d);

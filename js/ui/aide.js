@@ -7,6 +7,7 @@ export const TIPS = {
   hud: ['Lire le poste de tir', 'Les grands chiffres sont les corrections à appliquer : tournez la tourelle du nombre de clics indiqué, dans le sens indiqué. Avec une hausse graduée, Kronos indique le cran et de combien viser plus haut ou plus bas.'],
   zone: ['Zone probable d’impact', 'La balle a 95 % de chances d’arriver dans cette zone. La barre la plus longue montre ce qui vous coûte le plus en précision, et le conseil dit comment la réduire.'],
   wind: ['Régler le vent', 'Touchez l’heure d’où vient le vent : 12 h, il vous arrive de face ; 3 h, de la droite. Réglez ensuite sa vitesse avec − et +.'],
+  tar: ['Simuler le tir TAR', 'Choisissez la cible et la visée (plein centre ou à 6 h). Le point orange montre où la balle va frapper avec le réglage actuel, la zone en pointillé sa dispersion probable. Touchez les impacts pour compter les points, ou lancez une épreuve chronométrée.'],
   table: ['La table de tir', 'Les corrections de 100 en 100 m (pas réglable) avec le vent du moment. La ligne surlignée correspond à la distance de l’écran Tir.'],
   arm: ['Vos armes', 'Chaque arme a ses munitions, sa visée, son compteur et son carnet de séances. Touchez une arme pour l’ouvrir, puis « Utiliser » pour qu’elle devienne l’arme active de tous les écrans.'],
   ent: ['Les deux compteurs', 'Le total depuis l’acquisition ne s’efface jamais. « Nettoyage fait » remet seulement le compteur depuis le nettoyage à zéro.'],
