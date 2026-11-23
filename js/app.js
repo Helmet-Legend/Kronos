@@ -4,22 +4,28 @@ import * as store from './data/store.js';
 import * as M from './data/model.js';
 import { solve } from './engine/solver.js';
 import { stationFromQnh } from './engine/atmo.js';
+import { cranAnglesCached, cranTable } from './engine/tangent.js';
 import { renderTir } from './ui/tir.js';
 import { renderTable } from './ui/table.js';
 import { renderArmes } from './ui/armes.js';
 import { renderReglages } from './ui/reglages.js';
+import { renderTar } from './ui/tar.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
+import { onboardingOverlay, helpSheet } from './ui/aide.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.10.0';
 
 export const app = {
   state: M.defaultState(),
-  view: 'tir',        // tir | table | armes | reglages
+  view: 'tir',        // tir | tar | table | armes | reglages
+  match: null,        // épreuve TAR en cours (non enregistrée) : { eventId, start, pausedAt, paused, lastPhase }
+  tarShots: [],       // impacts touchés sur l'écran TAR (mm, origine au centre de la cible)
   armeId: null,       // fiche d'arme ouverte dans l'onglet Armes
   sheet: null,        // { key, build: () => Element }
   sheetEl: null,
   toast: '',
   wake: null,
+  persisted: null,   // résultat de navigator.storage.persist()
   version: VERSION
 };
 
@@ -27,10 +33,26 @@ let saveTimer = null, toastTimer = null;
 
 /** Applique une transformation d'état, sauvegarde (différée) et redessine. */
 export function set(fn) {
-  app.state = fn(app.state);
+  const prev = app.state;
+  let next = fn(prev);
+  // Rappel de sauvegarde : on compte les modifications des armes, munitions, compteurs et séances.
+  if (next.guns !== prev.guns) next = { ...next, settings: { ...next.settings, changesSinceBackup: (next.settings.changesSinceBackup || 0) + 1 } };
+  app.state = next;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => store.save(app.state), 250);
+  saveTimer = setTimeout(() => { saveTimer = null; store.save(app.state); }, 250);
   render();
+}
+
+/** Retour haptique bref (Android ; sans effet sur iPhone en application web). */
+export function buzz() {
+  try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* ignoré */ }
+}
+
+/** Enregistre tout de suite une sauvegarde en attente (application masquée ou fermée). */
+function flushSave() {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  store.save(app.state);
 }
 
 export function ui(o) { Object.assign(app, o); render(); }
@@ -54,45 +76,56 @@ export function metForCalc(s) {
 /** Résout le profil actif pour une liste de distances. */
 export function compute(s, distances) {
   const g = M.activeGun(s), l = M.activeLoad(g);
-  return {
-    gun: g, load: l,
-    res: solve({
-      gun: { sightH: g.sightH, zero: g.zero, twist: g.twist, twistDir: g.twistDir },
-      sight: g.sight, load: l, met: metForCalc(s), shot: s.shot, distances
-    })
-  };
+  const args = { gun: { sightH: g.sightH, zero: g.zero, twist: g.twist, twistDir: g.twistDir }, sight: g.sight, load: l, met: metForCalc(s), shot: s.shot };
+  return { gun: g, load: l, args, res: solve({ ...args, distances }) };
+}
+
+/**
+ * Hausse graduée : angles des crans, cran conseillé pour la distance d et cran utilisé (choisi ou conseillé).
+ * Renvoie null si l'arme n'a pas de hausse graduée.
+ */
+export function cranInfo(s, args, gun, d) {
+  const t = gun.sight.kind === 'iron' && gun.sight.tangent;
+  if (!t) return null;
+  const angles = cranAnglesCached(args, t);
+  if (!angles.size) return null;
+  const best = cranTable(args, angles, [d])[0];
+  const rec = best ? best.cran : null;
+  const used = s.shot.cran && angles.has(s.shot.cran) ? s.shot.cran : rec;
+  return { angles, list: [...angles.keys()], rec, used, alpha: used !== null ? angles.get(used).alpha : null, st: used !== null ? angles.get(used).st : 'calc' };
 }
 
 /* ---------- Écran toujours allumé (Wake Lock) ---------- */
 async function requestWake() {
-  if (!app.state.settings.wakeLock || app.view !== 'tir' || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  if (!app.state.settings.wakeLock || (app.view !== 'tir' && app.view !== 'tar') || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
   if (app.wake) return;
   try { app.wake = await navigator.wakeLock.request('screen'); app.wake.addEventListener('release', () => { app.wake = null; }); } catch (e) { app.wake = null; }
 }
 function releaseWake() { if (app.wake) { app.wake.release().catch(() => {}); app.wake = null; } }
 
 /* ---------- Rendu ---------- */
-const TABS = [['tir', 'Tir'], ['table', 'Table'], ['armes', 'Armes'], ['reglages', 'Réglages']];
+const TABS = [['tir', 'Tir'], ['tar', 'TAR'], ['table', 'Table'], ['armes', 'Armes'], ['reglages', 'Réglages']];
 const THEMES = { dark: ['light', 'sun', 'Passer en thème clair'], light: ['night', 'eye', 'Passer en mode nuit (rouge)'], night: ['dark', 'moon', 'Passer en thème sombre'] };
 
 function header() {
   const s = app.state, g = M.activeGun(s), l = M.activeLoad(g);
-  const sightTxt = g.sight.kind === 'scope' ? g.sight.unit + ' ' + String(g.sight.click).replace('.', ',') : 'visée mécanique';
+  const sightTxt = g.sight.kind === 'scope' ? g.sight.unit + ' ' + String(g.sight.click).replace('.', ',') : g.sight.tangent ? 'hausse graduée' : 'visée mécanique';
   const th = THEMES[s.settings.theme] || THEMES.dark;
   return h('header', { class: 'top' },
     h('button', { class: 'profile', onClick: () => openSheet('profile', profileSheet), 'aria-label': 'Changer d’arme ou de munition' },
-      h('span', { class: 'grow' }, h('b', null, g.name), h('small', null, l.name + ' · ' + sightTxt + ' · zéro ' + g.zero + ' m')),
+      h('span', { class: 'grow' }, h('b', null, g.name), h('small', null, l.name + ' · ' + sightTxt + (g.sight.kind === 'iron' && g.sight.tangent ? ' ' + g.sight.tangent.min + '–' + g.sight.tangent.max + ' m' : ' · zéro ' + g.zero + ' m'))),
       icon('down')),
+    h('button', { class: 'icon-btn', onClick: () => openSheet('help', helpSheet), 'aria-label': 'Aide', title: 'Aide' }, icon('help')),
     h('button', { class: 'icon-btn', onClick: () => set((x) => ({ ...x, settings: { ...x.settings, theme: th[0] } })), 'aria-label': th[2], title: th[2] }, icon(th[1]))
   );
 }
 
 function nav() {
   return h('nav', { class: 'tabs', 'aria-label': 'Navigation principale' },
-    TABS.map(([k, label]) => h('button', { 'aria-current': app.view === k ? 'page' : null, onClick: () => { ui({ view: k, armeId: k === 'armes' ? app.armeId : null }); k === 'tir' ? requestWake() : releaseWake(); } }, icon(k), label)));
+    TABS.map(([k, label]) => h('button', { 'aria-current': app.view === k ? 'page' : null, onClick: () => { ui({ view: k, armeId: k === 'armes' ? app.armeId : null }); k === 'tir' || k === 'tar' ? requestWake() : releaseWake(); } }, icon(k), label)));
 }
 
-const SCREENS = { tir: renderTir, table: renderTable, armes: renderArmes, reglages: renderReglages };
+const SCREENS = { tir: renderTir, tar: renderTar, table: renderTable, armes: renderArmes, reglages: renderReglages };
 
 export function render() {
   const root = document.getElementById('app');
@@ -118,6 +151,7 @@ export function render() {
     h('div', { class: 'shell' }, header(), main),
     nav(),
     sheet,
+    onboardingOverlay(),
     app.toast ? h('div', { class: 'toast', role: 'status' }, app.toast) : null
   ].filter(Boolean));
   main.scrollTop = scroll;
@@ -129,12 +163,15 @@ export async function start() {
   const saved = await store.load();
   if (saved && Array.isArray(saved.guns) && saved.guns.length) {
     const d = M.defaultState();
-    app.state = { ...d, ...saved, settings: { ...d.settings, ...saved.settings }, shot: { ...d.shot, ...saved.shot }, met: { ...d.met, ...saved.met } };
+    // une installation existante a déjà vu l'application : pas d'accueil après la mise à jour
+    const known = saved.settings && saved.settings.onboardingDone === undefined ? { onboardingDone: true } : {};
+    app.state = M.migrate({ ...d, ...saved, settings: { ...d.settings, ...saved.settings, ...known }, shot: { ...d.shot, ...saved.shot }, met: { ...d.met, ...saved.met } });
   }
   render();
-  store.persist();
+  store.persist().then((ok) => { app.persisted = ok; });
   requestWake();
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); else flushSave(); });
+  window.addEventListener('pagehide', flushSave);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }

@@ -18,6 +18,7 @@ export const SIGHTS = [
   { id: 'ffp-mrad', name: 'Lunette MRAD, clic 0,1', kind: 'scope', unit: 'MRAD', click: 0.1, sightH: 0.045 },
   { id: 'moa-14', name: 'Lunette MOA, clic 1/4', kind: 'scope', unit: 'MOA', click: 0.25, sightH: 0.045 },
   { id: 'moa-18', name: 'Lunette MOA, clic 1/8', kind: 'scope', unit: 'MOA', click: 0.125, sightH: 0.050 },
-  { id: 'iron-tan', name: 'Hausse tangentielle (type K98k)', kind: 'iron', sightH: 0.028 },
-  { id: 'iron-ring', name: 'Hausse à œilleton ou dioptre', kind: 'iron', sightH: 0.030 }
+  { id: 'iron-tan', name: 'Hausse tangentielle (type K98k)', kind: 'iron', sightH: 0.028, tangent: { min: 100, max: 2000, step: 100 } },
+  { id: 'iron-ring', name: 'Hausse à œilleton ou dioptre', kind: 'iron', sightH: 0.030, tangent: { min: 200, max: 1200, step: 100 } },
+  { id: 'iron-fix', name: 'Visée mécanique fixe', kind: 'iron', sightH: 0.025 }
 ];
