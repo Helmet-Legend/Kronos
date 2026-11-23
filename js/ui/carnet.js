@@ -5,6 +5,8 @@ import { app, set, closeSheet, openSheet, toast, confirm, metForCalc, compute, c
 import { cranAnglesCached } from '../engine/tangent.js';
 import { frame } from './sheets.js';
 import { tipCard } from './aide.js';
+import { impactPad, selectionBar } from './impacts.js';
+import { loadPhoto, defaultCorners, cornerEditor, rectifyPhoto } from './photo.js';
 import { groupStats, mpiUncertainty, turretClicks, coldBoreSummary, mmToMoa } from '../engine/grouping.js';
 import { TARGETS } from '../engine/targets.js';
 import { trueLoad, TRUE_MIN_DIST } from '../engine/truing.js';
@@ -22,11 +24,12 @@ export function sessionStats(x) { return groupStats(x.shots, x.coldFirst); }
 /* ---------- Dessin de cible (SVG, coordonnées en mm, y vers le haut) ---------- */
 export function targetSvg(T, o) {
   const z = o.zoom || 1, W = T.w / z, H = T.h / z;
-  const vb = [-W / 2, -H / 2, W, H];
+  const vb = o.view || [-W / 2, -H / 2, W, H]; // o.view : [x, y, largeur, hauteur] en mm (loupe)
   const pxPerMm = (o.px || 340) / W;
   const kids = [h('rect', { x: String(-T.w / 2), y: String(-T.h / 2), width: String(T.w), height: String(T.h), fill: 'var(--paper)' })];
   if (o.photo) {
-    kids.push(h('image', { href: o.photo, x: String(-T.w / 2), y: String(-T.h / 2), width: String(T.w), height: String(T.h), preserveAspectRatio: 'xMidYMid slice' }));
+    kids.push(h('image', { href: o.photo, x: String(-T.w / 2), y: String(-T.h / 2), width: String(T.w), height: String(T.h), preserveAspectRatio: o.rectified ? 'none' : 'xMidYMid slice' }));
+    if (o.overlay) for (const d of T.zones) kids.push(h('circle', { cx: '0', cy: '0', r: String(d / 2), fill: 'none', stroke: 'var(--cyan)', 'stroke-opacity': '0.7', 'stroke-width': String((d === T.black ? 2 : 1) / pxPerMm) }));
   } else {
     const step = T.zones.length ? 50 : 10;
     for (let v = -Math.floor(T.w / 2 / step) * step; v <= T.w / 2; v += step) {
@@ -49,7 +52,8 @@ export function targetSvg(T, o) {
   const holeR = Math.max((o.holeMm || 7.8) / 2, 5 / pxPerMm);
   (o.shots || []).forEach((p, i) => {
     const isCold = o.coldFirst && i === 0 && o.shots.length >= 2;
-    kids.push(h('circle', { cx: String(p.x), cy: String(-p.y), r: String(holeR), fill: isCold ? 'var(--violet)' : 'var(--amber)', stroke: 'var(--paper)', 'stroke-width': String(1.5 / pxPerMm) }));
+    if (i === o.sel) kids.push(h('circle', { cx: String(p.x), cy: String(-p.y), r: String(holeR * 2.2), fill: 'none', stroke: 'var(--cyan)', 'stroke-width': String(3 / pxPerMm) }));
+    kids.push(h('circle', { 'data-i': String(i), cx: String(p.x), cy: String(-p.y), r: String(holeR), fill: isCold ? 'var(--violet)' : 'var(--amber)', stroke: 'var(--paper)', 'stroke-width': String(1.5 / pxPerMm) }));
   });
   if (o.st && o.st.nHot >= 2) {
     const k = 14 / pxPerMm, mx = o.st.mx, my = -o.st.my, w = String(3 / pxPerMm);
@@ -89,25 +93,16 @@ const coldTxt = (st, dist) => (st && st.cold ? 'Coup à froid : ' + cm(st.cold.y
 export function sessionSheet() {
   const s0 = app.state, gun = M.activeGun(s0), load = M.activeLoad(gun);
   const last = (gun.sessions || []).at(-1);
-  const st = { dist: s0.shot.dist, target: last ? last.target : 'C200', coldFirst: true, shots: [], photo: null, zoom: 1 };
+  const st = { dist: s0.shot.dist, target: last ? last.target : 'C200', coldFirst: true, shots: [], photo: null, zoom: 1, sel: null, raw: null, corners: null, editCorners: false, rectified: false, overlay: true };
   const body = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } });
 
   const fileInput = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'sr', onChange: (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
-    try { if (st.photo) URL.revokeObjectURL(st.photo); st.photo = URL.createObjectURL(f); toast('Photo chargée : touchez les impacts'); draw(); } catch (err) { toast('Photo illisible'); }
+    e.target.value = '';
+    loadPhoto(f).then((raw) => { st.raw = raw; st.corners = defaultCorners(raw); st.editCorners = true; st.photo = null; st.rectified = false; draw(); toast('Placez les 4 poignées sur les coins du carton'); })
+      .catch(() => toast('Photo illisible'));
   } });
-
-  const tap = (e) => {
-    if (!e || e.detail === 0) return; // clavier : rien à placer
-    const svg = e.currentTarget.querySelector('svg');
-    const r = svg.getBoundingClientRect();
-    const T = TARGETS[st.target], W = T.w / st.zoom, H = T.h / st.zoom;
-    const x = -W / 2 + (e.clientX - r.left) / r.width * W;
-    const y = H / 2 - (e.clientY - r.top) / r.height * H;
-    st.shots.push({ x: Math.round(x), y: Math.round(y) });
-    draw();
-  };
 
   const save = () => {
     const g = groupStats(st.shots, st.coldFirst);
@@ -119,39 +114,58 @@ export function sessionSheet() {
       const cur = M.activeGun(s);
       return M.replaceGun(s, M.addSession(cur, { dist: st.dist, loadId: load.id, target: st.target, coldFirst: st.coldFirst, met: metForCalc(s), wind: { speed: s.shot.windSpeed, hour: s.shot.windHour }, cran: ci ? ci.used : null, shots: st.shots }));
     });
-    if (st.photo) URL.revokeObjectURL(st.photo);
     toast('Séance enregistrée · +' + n + ' coups aux compteurs');
     openSheet('carnet-' + gun.id, () => carnetSheet(gun.id));
   };
+
+  /** Étape des coins : poignées, puis redressement (ou photo prise bien de face). */
+  function cornerStep(T) {
+    return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
+      h('div', { class: 'notice info' }, h('b', null, 'Redresser la photo · '), 'faites glisser les poignées 1 à 4 sur les coins du carton ' + T.name + ' (' + T.w / 10 + ' × ' + T.h / 10 + ' cm), dans l’ordre : haut gauche, haut droit, bas droit, bas gauche.'),
+      cornerEditor(st.raw, st.corners, (c) => { st.corners = c; }),
+      h('div', { class: 'grid2' },
+        h('button', { class: 'btn', onClick: () => { st.photo = st.raw.url; st.rectified = false; st.editCorners = false; draw(); } }, 'Utiliser telle quelle'),
+        h('button', { class: 'btn primary', onClick: () => {
+          const url = rectifyPhoto(st.raw, st.corners, T);
+          if (!url) { toast('Coins incohérents : remettez-les dans l’ordre, sans croiser les côtés'); return; }
+          st.photo = url; st.rectified = true; st.editCorners = false; st.zoom = 1; draw(); toast('Photo redressée : vérifiez les zones, puis touchez les impacts');
+        } }, 'Redresser')));
+  }
 
   function draw() {
     const T = TARGETS[st.target];
     const g = groupStats(st.shots, st.coldFirst);
     const n = st.shots.length;
-    const hint = n === 0 ? 'Touchez le centre de chaque trou, dans l’ordre des tirs.' : n < 3 ? 'Encore ' + plural(3 - n, 'impact') + ' au minimum.' : plural(n, 'impact') + ' · ' + (adjustTxt(gun, g, st.dist) || '');
+    const hint = n === 0 ? 'Touchez le centre de chaque trou, dans l’ordre des tirs : glissez le doigt pour ajuster avec la loupe.' : n < 3 ? 'Encore ' + plural(3 - n, 'impact') + ' au minimum.' : plural(n, 'impact') + ' · ' + (adjustTxt(gun, g, st.dist) || '');
     fill(body, 
       h('div', { class: 'muted', style: { fontSize: '13px' } }, gun.name + ' · ' + load.name + ' · ' + num(s0.met.t, 0) + ' °C · vent ' + num(s0.shot.windSpeed, 1) + ' m/s de ' + s0.shot.windHour + ' h'),
       h('div', { class: 'row' },
         h('div', { class: 'grow' }, h('span', { class: 'label' }, 'Distance'), h('div', { class: 'mono', style: { fontSize: '22px', fontWeight: '700' } }, st.dist + ' m')),
         [-50, -10, 10, 50].map((d) => h('button', { class: 'step mono', 'aria-label': (d > 0 ? 'Plus ' : 'Moins ') + Math.abs(d) + ' mètres', onClick: () => { st.dist = clamp(st.dist + d, 10, 2000); draw(); } }, (d > 0 ? '+' : '−') + Math.abs(d)))),
-      h('div', { class: 'chips', role: 'group', 'aria-label': 'Cible' }, TARGET_ORDER.map((k) => h('button', { class: 'chip', 'aria-pressed': String(st.target === k), onClick: () => { st.target = k; st.zoom = 1; draw(); } }, TARGETS[k].name))),
+      h('div', { class: 'chips', role: 'group', 'aria-label': 'Cible' }, TARGET_ORDER.map((k) => h('button', { class: 'chip', 'aria-pressed': String(st.target === k), onClick: () => { st.target = k; st.zoom = 1; if (st.rectified) { st.editCorners = true; st.photo = null; } draw(); } }, TARGETS[k].name))),
       h('div', { class: 'grid2' },
-        h('label', { class: 'btn small', style: { display: 'flex', alignItems: 'center', justifyContent: 'center' } }, st.photo ? 'Changer la photo' : 'Photo de la cible', fileInput),
-        h('button', { class: 'btn small', 'aria-pressed': String(!st.photo), onClick: () => { if (st.photo) URL.revokeObjectURL(st.photo); st.photo = null; draw(); } }, 'Cible dessinée')),
+        h('label', { class: 'btn small', style: { display: 'flex', alignItems: 'center', justifyContent: 'center' } }, st.raw ? 'Changer la photo' : 'Photo de la cible', fileInput),
+        h('button', { class: 'btn small', 'aria-pressed': String(!st.raw), onClick: () => { st.raw = null; st.photo = null; st.editCorners = false; st.rectified = false; draw(); } }, 'Cible dessinée')),
       h('button', { class: 'switch', role: 'switch', 'aria-checked': String(st.coldFirst), onClick: () => { st.coldFirst = !st.coldFirst; draw(); } },
         h('span', { class: 'grow' }, h('b', null, 'Premier coup canon froid'), h('small', null, st.coldFirst ? 'Le 1er impact touché est le coup à froid (en violet)' : 'Tous les impacts comptent pareil')),
         h('span', { class: 'knob', 'aria-hidden': 'true' })),
-      h('button', { class: 'target', onClick: tap, 'aria-label': 'Toucher la cible pour placer un impact' }, targetSvg(T, { zoom: st.zoom, photo: st.photo, shots: st.shots, coldFirst: st.coldFirst, st: g, holeMm: load.dMm })),
+      st.raw && st.editCorners ? cornerStep(T) : null,
+      st.raw && st.editCorners ? null : impactPad(T, { shots: st.shots, sel: st.sel, label: 'Cible : touchez et glissez pour placer un impact', svg: { zoom: st.zoom, photo: st.photo, rectified: st.rectified, overlay: st.rectified && st.overlay, coldFirst: st.coldFirst, st: g, holeMm: load.dMm },
+        onChange: (shots, sel) => { st.shots = shots; st.sel = sel; draw(); } }),
+      selectionBar(st.shots, st.sel, () => { st.shots = st.shots.filter((_, k) => k !== st.sel); st.sel = null; draw(); }),
+      st.raw && !st.editCorners ? h('div', { class: 'grid2' },
+        st.rectified ? h('button', { class: 'btn small', 'aria-pressed': String(st.overlay), onClick: () => { st.overlay = !st.overlay; draw(); } }, st.overlay ? 'Masquer les zones' : 'Afficher les zones') : h('span'),
+        h('button', { class: 'btn small', onClick: () => { st.editCorners = true; draw(); } }, 'Reprendre les coins')) : null,
       h('div', { class: 'row' },
         h('span', { class: 'muted grow', style: { fontSize: '13px' } }, hint),
         h('div', { class: 'chips', role: 'group', 'aria-label': 'Zoom' }, [1, 2, 4].map((z) => h('button', { class: 'chip', 'aria-pressed': String(st.zoom === z), 'aria-label': 'Zoom ' + z + ' fois', onClick: () => { st.zoom = z; draw(); } }, '×' + z)))),
       statTiles(g, st.dist),
       g && g.cold ? h('div', { class: 'notice info' }, coldTxt(g, st.dist)) : null,
       h('div', { class: 'grid3' },
-        h('button', { class: 'btn', onClick: () => { st.shots.pop(); draw(); } }, 'Annuler'),
-        h('button', { class: 'btn', onClick: () => { st.shots = []; draw(); } }, 'Effacer'),
+        h('button', { class: 'btn', onClick: () => { st.shots = st.shots.slice(0, -1); st.sel = null; draw(); } }, 'Annuler'),
+        h('button', { class: 'btn', onClick: () => { st.shots = []; st.sel = null; draw(); } }, 'Effacer'),
         h('button', { class: 'btn primary', onClick: save }, 'Enregistrer')),
-      h('p', { class: 'muted', style: { fontSize: '12px', margin: '0', lineHeight: '1.45' } }, 'Le point visé est le centre du visuel, avec la correction calculée par Kronos. Photo : cadrez le visuel bord à bord ; elle sert à placer les impacts et n’est pas conservée. L’enregistrement ajoute les coups aux deux compteurs.'));
+      h('p', { class: 'muted', style: { fontSize: '12px', margin: '0', lineHeight: '1.45' } }, 'Le point visé est le centre du visuel, avec la correction calculée par Kronos. Photo : prenez tout le carton, même de biais, puis placez ses 4 coins ; elle sert à placer les impacts et n’est pas conservée. L’enregistrement ajoute les coups aux deux compteurs.'));
   }
   draw();
   return frame('Saisir une séance', body);

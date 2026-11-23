@@ -5,7 +5,8 @@ import { app, set, ui, compute, cranInfo, toast, confirm, openSheet, metForCalc,
 import { solve } from '../engine/solver.js';
 import { confidence } from '../engine/confidence.js';
 import { TARGETS, EVENTS, aimPoint, score, totalScore, matchClock } from '../engine/targets.js';
-import { targetSvg, carnetSheet } from './carnet.js';
+import { carnetSheet } from './carnet.js';
+import { impactPad, selectionBar } from './impacts.js';
 import { tipCard } from './aide.js';
 
 const TAR_TARGETS = ['C200', 'C200_50', 'C50'];
@@ -100,12 +101,6 @@ export function renderTar() {
     if (imp) k.push(h('circle', { cx: String(imp.x), cy: String(-imp.y), r: String(7 / ppm), fill: 'var(--amber)', stroke: 'var(--paper)', 'stroke-width': String(2 / ppm) }));
     return k;
   };
-  const tap = (e) => {
-    if (!e || e.detail === 0) return;
-    const svg = e.currentTarget.querySelector('svg'), rc = svg.getBoundingClientRect();
-    app.tarShots = [...app.tarShots, { x: Math.round((e.clientX - rc.left) / rc.width * T.w - T.w / 2), y: Math.round(T.h / 2 - (e.clientY - rc.top) / rc.height * T.h) }];
-    buzz(); ui({});
-  };
   const shots = app.tarShots;
   const total = totalScore(T, shots, hole);
   const saveSeries = () => {
@@ -141,8 +136,9 @@ export function renderTar() {
         h('button', { class: 'step', 'aria-label': 'Cran précédent', disabled: i <= 0 ? true : null, onClick: () => setShot({ cran: ci.list[i - 1] }) }, '−'),
         h('button', { class: 'step', 'aria-pressed': String(!sh.cran), onClick: () => setShot({ cran: null }) }, 'Auto'),
         h('button', { class: 'step', 'aria-label': 'Cran suivant', disabled: i >= ci.list.length - 1 ? true : null, onClick: () => setShot({ cran: ci.list[i + 1] }) }, '+')) : null),
-    h('button', { class: 'target', onClick: tap, 'aria-label': 'Toucher la cible pour compter un impact' },
-      targetSvg(T, { shots, st: null, holeMm: hole, extra })),
+    impactPad(T, { shots, sel: app.tarSel, label: 'Cible : touchez et glissez pour compter un impact', svg: { st: null, holeMm: hole, extra },
+      onChange: (s2, sel) => { if (s2.length > shots.length) buzz(); app.tarShots = s2; app.tarSel = sel; ui({}); } }),
+    selectionBar(shots, app.tarSel, () => { app.tarShots = shots.filter((_, k) => k !== app.tarSel); app.tarSel = null; ui({}); }),
     h('div', { class: 'card', style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
       h('b', null, line1),
       line2 ? h('span', { class: 'muted', style: { fontSize: '13px' } }, line2) : null,
@@ -152,8 +148,8 @@ export function renderTar() {
       h('div', { class: 'row' }, h('span', { class: 'label grow' }, ev ? 'Points de l’épreuve' : 'Série'), h('b', { class: 'mono', style: { fontSize: '20px' } }, total + ' pts'), h('span', { class: 'muted', style: { fontSize: '13px' } }, ' · ' + shots.length + ' impact' + (shots.length > 1 ? 's' : ''))),
       h('div', { class: 'muted', style: { fontSize: '12px', margin: '4px 0 8px' } }, shots.length ? 'Derniers : ' + shots.slice(-10).map((p) => score(T, p.x, p.y, hole)).join(' · ') : 'Touchez le centre de chaque trou sur la cible : Kronos compte les points (ligne touchée = zone supérieure).'),
       h('div', { class: 'grid3' },
-        h('button', { class: 'btn', onClick: () => { app.tarShots = shots.slice(0, -1); ui({}); } }, 'Annuler'),
-        h('button', { class: 'btn', onClick: () => { app.tarShots = []; ui({}); } }, 'Effacer'),
+        h('button', { class: 'btn', onClick: () => { app.tarShots = shots.slice(0, -1); app.tarSel = null; ui({}); } }, 'Annuler'),
+        h('button', { class: 'btn', onClick: () => { app.tarShots = []; app.tarSel = null; ui({}); } }, 'Effacer'),
         h('button', { class: 'btn primary', onClick: saveSeries }, 'Enregistrer'))),
     matchCard(ev));
 }

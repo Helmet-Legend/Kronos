@@ -13,13 +13,14 @@ import { renderTar } from './ui/tar.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 import { onboardingOverlay, helpSheet } from './ui/aide.js';
 
-const VERSION = '0.11.3';
+const VERSION = '0.13.0';
 
 export const app = {
   state: M.defaultState(),
   view: 'tir',        // tir | tar | table | armes | reglages
   match: null,        // épreuve TAR en cours (non enregistrée) : { eventId, start, pausedAt, paused, lastPhase }
   tarShots: [],       // impacts touchés sur l'écran TAR (mm, origine au centre de la cible)
+  tarSel: null,       // impact sélectionné sur l'écran TAR
   armeId: null,       // fiche d'arme ouverte dans l'onglet Armes
   sheet: null,        // { key, build: () => Element }
   sheetEl: null,

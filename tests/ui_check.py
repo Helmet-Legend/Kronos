@@ -78,6 +78,15 @@ with sync_playwright() as p:
     for x, y in [(60, 70), (0, -60), (10, -70), (-8, -55), (5, -45), (-4, -66)]:
         page.mouse.click(bx['x'] + (0.5 + x / 250) * bx['width'], bx['y'] + (0.5 - y / 250) * bx['height'])
     assert '6 impacts' in page.inner_text('.sheet'), page.inner_text('.sheet')
+    # sélection, suppression puis remise du dernier impact ; glisser avec la loupe
+    page.mouse.click(bx['x'] + (0.5 - 4 / 250) * bx['width'], bx['y'] + (0.5 + 66 / 250) * bx['height'])
+    assert 'Impact n° 6' in page.inner_text('.sheet .selbar')
+    page.get_by_role('button', name='Supprimer l’impact').click(); assert '5 impacts' in page.inner_text('.sheet')
+    page.mouse.move(bx['x'] + 0.45 * bx['width'], bx['y'] + 0.7 * bx['height']); page.mouse.down()
+    page.mouse.move(bx['x'] + (0.5 - 4 / 250) * bx['width'], bx['y'] + (0.5 + 66 / 250) * bx['height'], steps=5)
+    assert page.locator('.loupe').count() == 1
+    page.mouse.up(); assert page.locator('.loupe').count() == 0
+    assert '6 impacts' in page.inner_text('.sheet'), page.inner_text('.sheet')
     assert 'Coup à froid' in page.inner_text('.sheet .notice.info')
     shot(page, '08-seance')
     page.locator('.sheet').get_by_role('button', name='Enregistrer').click()
@@ -165,6 +174,7 @@ with sync_playwright() as p:
     page.locator('nav.tabs button', has_text='TAR').click(); page.wait_for_selector('main.tar')
     page.get_by_role('button', name='C200 Mod.75').click(); page.get_by_role('button', name='Visée à 6 h').click()
     assert 'en visée à 6 h' in page.inner_text('main.tar') and 'Impact prévu' in page.inner_text('main.tar')
+    assert page.evaluate("document.querySelector('main.tar .target ellipse') instanceof SVGEllipseElement"), 'zone probable non dessinée'
     bx = page.locator('main.tar .target svg').bounding_box()
     for x, y in [(0, 0), (0, 50)]:
         page.mouse.click(bx['x'] + (0.5 + x / 850) * bx['width'], bx['y'] + (0.5 - y / 850) * bx['height'])
