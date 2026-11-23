@@ -127,7 +127,7 @@ test('visuel noir : C200 400 mm (zone 6), C200 50 % 200 mm (zone 6), C50 200 mm 
     const t = TARGETS[k];
     assert.equal(t.black, b); assert.equal(t.blackFrom, z);
     assert.equal(t.zones[10 - z], b, k + ' : le noir couvre exactement les zones ' + z + ' à 10');
-    assert.ok(t.blackSource);
+    assert.ok(t.blackSource); assert.equal(t.blackConfirmed, true);
   }
 });
 
@@ -143,5 +143,10 @@ test('total des points et chrono de match', () => {
   assert.deepEqual(matchClock(ph, 0), { index: 0, name: 'Essais', left: 300, done: false });
   assert.deepEqual(matchClock(ph, 310), { index: 1, name: 'Précision', left: 410, done: false });
   assert.equal(matchClock(ph, 2000).done, true);
-  for (const e of EVENTS) { assert.ok(TARGETS[e.target]); assert.equal(e.verified, false); }
+  for (const e of EVENTS) {
+    assert.ok(TARGETS[e.target]); assert.equal(e.verified, true);
+    assert.equal(e.phases.reduce((a, p) => a + p[2], 0), e.shots, e.id + ' : 25 coups');
+  }
+  assert.equal(EVENTS.find((e) => e.id === '815').phases[2][1], 60, '815 : vitesse en 1 min');
+  assert.equal(EVENTS.find((e) => e.id === '822').phases[2][3], 'assis sans appui');
 });

@@ -169,9 +169,9 @@ with sync_playwright() as p:
     for x, y in [(0, 0), (0, 50)]:
         page.mouse.click(bx['x'] + (0.5 + x / 850) * bx['width'], bx['y'] + (0.5 - y / 850) * bx['height'])
     assert '19 pts' in page.inner_text('main.tar'), page.inner_text('main.tar')
-    page.get_by_role('button', name='810 · Répétition manuelle').click(); page.get_by_role('button', name='Démarrer').click()
+    page.get_by_role('button', name='810 · Fusil à répétition manuelle').click(); page.get_by_role('button', name='Démarrer').click()
     page.wait_for_timeout(1300); assert 'Pause' in page.inner_text('.match')
-    page.get_by_role('button', name='Phase suivante').click(); assert 'Précision' in page.inner_text('.match')
+    page.get_by_role('button', name='Phase suivante').click(); assert 'Précision' in page.inner_text('.match') and '10 coups · couché' in page.inner_text('.match')
     assert '0 pts' in page.inner_text('main.tar'), 'une nouvelle épreuve repart de zéro'
     page.locator('main.tar .target').scroll_into_view_if_needed(); bx = page.locator('main.tar .target svg').bounding_box()
     for x, y in [(0, 0), (0, 50)]:
