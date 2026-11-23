@@ -13,7 +13,7 @@ import { renderTar } from './ui/tar.js';
 import { profileSheet, meteoSheet, shotsSheet, confirmSheet } from './ui/sheets.js';
 import { onboardingOverlay, helpSheet } from './ui/aide.js';
 
-const VERSION = '0.11.1';
+const VERSION = '0.11.2';
 
 export const app = {
   state: M.defaultState(),

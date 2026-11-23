@@ -1,6 +1,7 @@
 // Catalogue de munitions. Chaque fiche est reprise dans un formulaire modifiable.
 // Les V0 sont celles annoncées pour un canon d'environ 60 cm : mesurez la vôtre au chrono.
-// verify: true = données non vérifiées sur la documentation du fabricant (src dit d'où elles viennent) ;
+// src : d'où vient le BC (vérifié sur la documentation du fabricant le 23/11/2026 quand verify est absent) ;
+// verify: true = BC non confirmé par le fabricant ou sources divergentes ;
 // bcEst: true = BC estimé (valeur typique pour ce type d'ogive), absent de la source.
 // Les calibres de chasse figurent ici pour le tir sportif : Kronos n'est pas une application de chasse.
 
@@ -11,41 +12,41 @@ const C = 'Tableau comparatif des calibres courants (novembre 2026)';
 
 export const AMMO = [
   // Fabricants (BC publiés)
-  { id: 'hm178', brand: 'Hornady Match', name: '178 gr ELD Match', cal: '.308 Winchester', grains: 178, dMm: 7.82, lenMm: 34.9, g1: 0.547, g7: 0.275, v0: 792, disc: ['TLD'] },
-  { id: 'fgm175', brand: 'Federal Gold Medal Match', name: '175 gr Sierra MatchKing', cal: '.308 Winchester', grains: 175, dMm: 7.82, lenMm: 31.5, g1: 0.505, g7: 0.250, v0: 792, disc: ['TLD', 'TAR'] },
-  { id: 'fgm168', brand: 'Federal Gold Medal Match', name: '168 gr Sierra MatchKing', cal: '.308 Winchester', grains: 168, dMm: 7.82, lenMm: 30.9, g1: 0.462, g7: 0.218, v0: 808, disc: ['TAR', 'TLD'] },
-  { id: 'lap167', brand: 'Lapua', name: '167 gr Scenar', cal: '.308 Winchester', grains: 167, dMm: 7.83, lenMm: 31.3, g1: 0.446, g7: 0.223, v0: 820, disc: ['TLD'] },
-  { id: 'hm140', brand: 'Hornady Match', name: '140 gr ELD Match', cal: '6.5 Creedmoor', grains: 140, dMm: 6.71, lenMm: 35.6, g1: 0.646, g7: 0.326, v0: 826, disc: ['TLD'] },
-  { id: 'hm147', brand: 'Hornady Match', name: '147 gr ELD Match', cal: '6.5 Creedmoor', grains: 147, dMm: 6.71, lenMm: 37.7, g1: 0.697, g7: 0.351, v0: 821, disc: ['TLD'] },
-  { id: 'fgm77', brand: 'Federal Gold Medal Match', name: '77 gr Sierra MatchKing', cal: '.223 Remington', grains: 77, dMm: 5.69, lenMm: 25.0, g1: 0.372, g7: 0.182, v0: 829, disc: ['TAR', 'TLD'] },
+  { id: 'hm178', brand: 'Hornady Match', name: '178 gr ELD Match', cal: '.308 Winchester', grains: 178, dMm: 7.82, lenMm: 34.9, g1: 0.547, g7: 0.275, v0: 792, disc: ['TLD'], src: 'Hornady (table des BC)' },
+  { id: 'fgm175', brand: 'Federal Gold Medal Match', name: '175 gr Sierra MatchKing', cal: '.308 Winchester', grains: 175, dMm: 7.82, lenMm: 31.5, g1: 0.505, g7: 0.250, v0: 792, disc: ['TLD', 'TAR'], src: 'Sierra, Federal' },
+  { id: 'fgm168', brand: 'Federal Gold Medal Match', name: '168 gr Sierra MatchKing', cal: '.308 Winchester', grains: 168, dMm: 7.82, lenMm: 30.9, g1: 0.462, g7: 0.218, v0: 808, disc: ['TAR', 'TLD'], src: 'Sierra (G1) ; G7 mesuré par Applied Ballistics' },
+  { id: 'lap167', brand: 'Lapua', name: '167 gr Scenar', cal: '.308 Winchester', grains: 167, dMm: 7.83, lenMm: 31.3, g1: 0.446, g7: 0.223, v0: 820, disc: ['TLD'], src: 'Lapua (fiche produit)' },
+  { id: 'hm140', brand: 'Hornady Match', name: '140 gr ELD Match', cal: '6.5 Creedmoor', grains: 140, dMm: 6.71, lenMm: 35.6, g1: 0.646, g7: 0.326, v0: 826, disc: ['TLD'], src: 'Hornady (table des BC)' },
+  { id: 'hm147', brand: 'Hornady Match', name: '147 gr ELD Match', cal: '6.5 Creedmoor', grains: 147, dMm: 6.71, lenMm: 37.7, g1: 0.697, g7: 0.351, v0: 821, disc: ['TLD'], src: 'Hornady (table des BC)' },
+  { id: 'fgm77', brand: 'Federal Gold Medal Match', name: '77 gr Sierra MatchKing', cal: '.223 Remington', grains: 77, dMm: 5.69, lenMm: 25.0, g1: 0.372, g7: 0.182, v0: 829, disc: ['TAR', 'TLD'], src: 'Sierra' },
   { id: 'ss198', brand: 'Surplus militaire', name: 's.S. 198 gr', cal: '7,92x57 IS', grains: 198, dMm: 8.22, lenMm: 33.0, g1: 0.495, g7: 0, v0: 760, disc: ['TAR'], verify: true, src: 'valeurs usuelles de collectionneurs' },
   { id: 'js196', brand: 'Générique', name: '196 gr FMJ', cal: '7,92x57 IS', grains: 196, dMm: 8.20, lenMm: 31.0, g1: 0.40, g7: 0, v0: 745, disc: ['TAR'], verify: true, src: 'valeurs usuelles', bcEst: true },
   { id: 'mas139', brand: 'Surplus militaire', name: 'Balle 1929C 139 gr', cal: '7,5x54 MAS', grains: 139, dMm: 7.84, lenMm: 29.0, g1: 0.40, g7: 0, v0: 820, disc: ['TAR'], verify: true, src: 'valeurs usuelles', bcEst: true },
 
   // TAR : munitions réglementaires et match (BC G1)
-  { id: 'tar22', brand: 'Match', name: '40 gr standard', cal: '.22 LR', grains: 40, dMm: 5.69, g1: 0.130, g7: 0, v0: 325, disc: ['TAR'], verify: true, src: T },
-  { id: 'tar30c', brand: 'Réglementaire', name: '110 gr FMJ RN', cal: '.30 M1 Carbine', grains: 110, dMm: 7.82, g1: 0.175, g7: 0, v0: 600, disc: ['TAR'], verify: true, src: T },
+  { id: 'tar22', brand: 'Lapua', name: 'Center-X 40 gr', cal: '.22 LR', grains: 40, dMm: 5.69, g1: 0.172, g7: 0, v0: 327, disc: ['TAR'], src: 'Lapua (fiche produit Center-X)' },
+  { id: 'tar30c', brand: 'Hornady', name: '110 gr FMJ', cal: '.30 M1 Carbine', grains: 110, dMm: 7.82, g1: 0.178, g7: 0, v0: 607, disc: ['TAR'], src: 'Hornady et Magtech (Sellier & Bellot annonce 0,154)' },
   { id: 'tar762x39', brand: 'Réglementaire', name: '123 gr FMJ', cal: '7,62x39', grains: 123, dMm: 7.92, g1: 0.265, g7: 0, v0: 715, disc: ['TAR'], verify: true, src: T },
-  { id: 'tar223', brand: 'Match', name: '69 gr HPBT', cal: '.223 Remington', grains: 69, dMm: 5.69, g1: 0.305, g7: 0, v0: 880, disc: ['TAR'], verify: true, src: T },
+  { id: 'tar223', brand: 'Sierra', name: '69 gr MatchKing', cal: '.223 Remington', grains: 69, dMm: 5.69, g1: 0.305, g7: 0, v0: 880, disc: ['TAR'], src: 'Sierra (G1 0,301 à 0,317 selon la vitesse)' },
   { id: 'tarmas150', brand: 'Réglementaire', name: '150 gr FMJBT', cal: '7,5x54 MAS', grains: 150, dMm: 7.82, g1: 0.410, g7: 0, v0: 810, disc: ['TAR'], verify: true, src: T },
   { id: 'tar303', brand: 'Réglementaire', name: '174 gr FMJBT', cal: '.303 British', grains: 174, dMm: 7.92, g1: 0.490, g7: 0, v0: 745, disc: ['TAR'], verify: true, src: T },
-  { id: 'tar54r', brand: 'Match', name: '174 gr HPBT', cal: '7,62x54R', grains: 174, dMm: 7.92, g1: 0.490, g7: 0, v0: 795, disc: ['TAR'], verify: true, src: T },
-  { id: 'targp11', brand: 'Réglementaire', name: 'GP11 174 gr', cal: '7,5x55 Suisse', grains: 174, dMm: 7.77, g1: 0.505, g7: 0, v0: 780, disc: ['TAR'], verify: true, src: T },
-  { id: 'tar65se', brand: 'Match', name: '139 gr HPBT', cal: '6,5x55 SE', grains: 139, dMm: 6.71, g1: 0.578, g7: 0, v0: 820, disc: ['TAR'], verify: true, src: T },
-  { id: 'tar8x57', brand: 'Réglementaire', name: '196 gr FMJBT', cal: '7,92x57 IS', grains: 196, dMm: 8.22, g1: 0.520, g7: 0, v0: 770, disc: ['TAR'], verify: true, src: T },
-  { id: 'tar3006', brand: 'Match', name: '168 gr HPBT', cal: '.30-06 Springfield', grains: 168, dMm: 7.82, g1: 0.462, g7: 0, v0: 845, disc: ['TAR'], verify: true, src: T },
+  { id: 'tar54r', brand: 'Sierra', name: '174 gr MatchKing', cal: '7,62x54R', grains: 174, dMm: 7.92, g1: 0.499, g7: 0.249, v0: 795, disc: ['TAR'], src: 'Sierra (balle .311 174 gr SMK)' },
+  { id: 'targp11', brand: 'Réglementaire', name: 'GP11 174 gr', cal: '7,5x55 Suisse', grains: 174, dMm: 7.77, g1: 0.505, g7: 0, v0: 780, disc: ['TAR'], verify: true, src: 'sources divergentes : G1 0,505 à 0,514, ou 0,545 (G7 0,274) selon k31.ch' },
+  { id: 'tar65se', brand: 'Lapua', name: '139 gr Scenar', cal: '6,5x55 SE', grains: 139, dMm: 6.71, g1: 0.578, g7: 0.290, v0: 820, disc: ['TAR'], src: 'Lapua (balle 139 gr Scenar)' },
+  { id: 'tar8x57', brand: 'Sellier & Bellot', name: '196 gr FMJ', cal: '7,92x57 IS', grains: 196, dMm: 8.22, g1: 0.509, g7: 0.256, v0: 770, disc: ['TAR'], src: 'Sellier & Bellot (SB857JSA)' },
+  { id: 'tar3006', brand: 'Sierra', name: '168 gr MatchKing', cal: '.30-06 Springfield', grains: 168, dMm: 7.82, g1: 0.462, g7: 0, v0: 845, disc: ['TAR'], src: 'Sierra (balle 168 gr SMK)' },
 
   // TLD : munitions de match (BC G7)
-  { id: 'tld6br', brand: 'Match', name: '105 gr HPBT', cal: '6mm BR Norma', grains: 105, dMm: 6.17, g1: 0, g7: 0.275, v0: 860, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld6547', brand: 'Lapua', name: '139 gr Scenar', cal: '6,5x47 Lapua', grains: 139, dMm: 6.71, g1: 0, g7: 0.290, v0: 850, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld6cm', brand: 'Hornady Match', name: '108 gr ELD Match', cal: '6mm Creedmoor', grains: 108, dMm: 6.17, g1: 0, g7: 0.270, v0: 915, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld65prc', brand: 'Hornady Match', name: '147 gr ELD Match', cal: '6,5 PRC', grains: 147, dMm: 6.71, g1: 0, g7: 0.351, v0: 890, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld284', brand: 'Match', name: '180 gr Hybrid', cal: '.284 Winchester', grains: 180, dMm: 7.21, g1: 0, g7: 0.345, v0: 860, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld300wm', brand: 'Match', name: '215 gr Hybrid', cal: '.300 Win Mag', grains: 215, dMm: 7.82, g1: 0, g7: 0.354, v0: 870, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld300nm', brand: 'Match', name: '230 gr Hybrid', cal: '.300 Norma Magnum', grains: 230, dMm: 7.82, g1: 0, g7: 0.382, v0: 900, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld338lm', brand: 'Lapua', name: '300 gr Scenar', cal: '.338 Lapua Magnum', grains: 300, dMm: 8.58, g1: 0, g7: 0.400, v0: 840, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld375ct', brand: 'Match', name: '377 gr monolithique', cal: '.375 CheyTac', grains: 377, dMm: 9.53, g1: 0, g7: 0.480, v0: 910, disc: ['TLD'], verify: true, src: T },
-  { id: 'tld50', brand: 'Hornady', name: '750 gr A-Max', cal: '.50 BMG', grains: 750, dMm: 12.95, g1: 0, g7: 0.510, v0: 860, disc: ['TLD'], verify: true, src: T },
+  { id: 'tld6br', brand: 'Lapua', name: '105 gr Scenar', cal: '6mm BR Norma', grains: 105, dMm: 6.17, g1: 0.472, g7: 0.236, v0: 850, disc: ['TLD'], src: 'Lapua (cartouche 4316046)' },
+  { id: 'tld6547', brand: 'Lapua', name: '139 gr Scenar', cal: '6,5x47 Lapua', grains: 139, dMm: 6.71, g1: 0.578, g7: 0.290, v0: 820, disc: ['TLD'], src: 'Lapua (catalogue)' },
+  { id: 'tld6cm', brand: 'Hornady Match', name: '108 gr ELD Match', cal: '6mm Creedmoor', grains: 108, dMm: 6.17, g1: 0.536, g7: 0.270, v0: 915, disc: ['TLD'], src: 'Hornady (table des BC)' },
+  { id: 'tld65prc', brand: 'Hornady Match', name: '147 gr ELD Match', cal: '6,5 PRC', grains: 147, dMm: 6.71, g1: 0.697, g7: 0.351, v0: 890, disc: ['TLD'], src: 'Hornady (table des BC)' },
+  { id: 'tld284', brand: 'Berger', name: '180 gr Hybrid Target', cal: '.284 Winchester', grains: 180, dMm: 7.21, g1: 0.680, g7: 0.349, v0: 860, disc: ['TLD'], src: 'Berger (catalogue 2021)' },
+  { id: 'tld300wm', brand: 'Berger', name: '215 gr Hybrid Target', cal: '.300 Win Mag', grains: 215, dMm: 7.82, g1: 0.691, g7: 0.354, v0: 870, disc: ['TLD'], src: 'Berger (catalogue 2024)' },
+  { id: 'tld300nm', brand: 'Berger', name: '230 gr Hybrid Target', cal: '.300 Norma Magnum', grains: 230, dMm: 7.82, g1: 0, g7: 0.368, v0: 900, disc: ['TLD'], src: 'Berger (catalogue 2024)' },
+  { id: 'tld338lm', brand: 'Lapua', name: '300 gr Scenar', cal: '.338 Lapua Magnum', grains: 300, dMm: 8.58, g1: 0.736, g7: 0.368, v0: 820, disc: ['TLD'], src: 'Lapua (cartouche 4318013)' },
+  { id: 'tld375ct', brand: 'Cutting Edge', name: '377 gr MTAC', cal: '.375 CheyTac', grains: 377, dMm: 9.53, g1: 0.874, g7: 0.447, v0: 910, disc: ['TLD'], verify: true, src: 'fiche technique 2025 (mesure Applied Ballistics), une seule source' },
+  { id: 'tld50', brand: 'Hornady', name: '750 gr A-Max', cal: '.50 BMG', grains: 750, dMm: 12.95, g1: 1.050, g7: 0.510, v0: 860, disc: ['TLD'], verify: true, src: 'G1 1,050 publié par Hornady ; G7 non publié (0,510 à 0,524 selon les revendeurs)' },
 
   // Calibres de chasse, pour le tir (BC G1 estimés : absents de la source)
   { id: 'cc222', brand: 'Standard', name: '55 gr', cal: '.222 Remington', grains: 55, dMm: 5.69, g1: 0.23, g7: 0, v0: 960, disc: ['CC'], verify: true, src: C, bcEst: true },

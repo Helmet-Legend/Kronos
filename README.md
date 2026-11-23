@@ -8,7 +8,7 @@ Calculateur balistique hors ligne pour le tir sportif : application web installa
 - **Zone probable d'impact (95 %)** : propagation des incertitudes (V0, BC, vent, distance, sens des rayures, dispersion arme + tireur), part de chaque facteur et conseil qui réduit le plus la zone.
 - **Réglages du tir** : distance (saisie ou ±10/±50 m), vent à l'horloge (12 h = de face, 3 h = de la droite), angle de site.
 - **Météo** : automatique (GPS + Open-Meteo, pression au stand) ou saisie manuelle (pression station ou QNH + altitude). Le vent météo peut être converti en heures si la direction du tir est connue.
-- **Catalogue de munitions** (46 fiches) : TAR, TLD et calibres de chasse utilisés au tir, filtres par discipline, recherche, mention « à vérifier » et « BC estimé » pour les données non reprises d'un fabricant.
+- **Catalogue de munitions** (44 fiches) : TAR, TLD et calibres de chasse utilisés au tir, filtres par discipline, recherche, mention « à vérifier » et « BC estimé » pour les données non reprises d'un fabricant.
 - **Comparateur** (onglet Table) : jusqu'à 4 munitions, les vôtres ou celles du catalogue, dans les mêmes conditions : élévation, chute, vent, énergie, portée supersonique, courbes.
 - **Profil de la trajectoire** (en tête de la table) : courbe par rapport à la ligne de visée, flèche maximale, passage sous Mach 1,2.
 - **Table de tir** : 100 à 1500 m, pas de 25, 50 ou 100 m, avec le vent du moment. La ligne la plus proche de la distance de l'écran Tir est surlignée.
