@@ -147,6 +147,18 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .clock-big.warn { color: var(--red); }
 .btn:disabled { opacity: .4; }
 
+.search { height: 48px; width: 100%; border-radius: 10px; border: 1px solid var(--border); background: var(--panel2); padding: 0 12px; font-size: 16px; }
+
+.ctable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ctable td { vertical-align: top; }
+.ctable th, .ctable td { padding: 5px 4px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+.ctable th[scope="row"] { text-align: left; color: var(--muted); font-weight: 600; }
+.ctable thead th { font-size: 12px; white-space: normal; vertical-align: bottom; }
+.ctable td small { display: block; font-size: 11px; color: var(--muted); font-family: Inter, system-ui, sans-serif; }
+.ctable tr.sub th { text-align: left; color: var(--fg); font-weight: 700; padding-top: 10px; }
+.chip.pick { display: inline-flex; align-items: center; gap: 6px; }
+.chip.pick .dot { width: 10px; height: 10px; border-radius: 5px; }
+
 /* Interrupteur */
 .switch { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); text-align: left; }
 .switch b, .switch small { display: block; }

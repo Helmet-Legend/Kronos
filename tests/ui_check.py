@@ -59,6 +59,16 @@ with sync_playwright() as p:
     page.get_by_role('button', name='Table', exact=True).click(); page.wait_for_selector('.ttable')
     assert page.locator('.ttable tbody tr').count() == 19
     shot(page, '03-table')
+    # comparateur : munition active + une du catalogue (recherche) + une du TAR (filtre)
+    page.get_by_role('button', name='Comparer des munitions').click(); page.wait_for_selector('.sheet .ctable')
+    page.get_by_label('Rechercher dans le catalogue').fill('6,5 PRC'); page.locator('.sheet .item', has_text='6,5 PRC').click()
+    page.get_by_label('Rechercher dans le catalogue').fill(''); page.locator('.sheet .chips button', has_text='TAR').click()
+    page.locator('.sheet .item', has_text='7,5x54 MAS · 150 gr').click()
+    assert page.locator('.sheet .chip.pick').count() == 3
+    assert page.locator('.sheet .ctable thead th').count() == 4 and 'Mach 1,2' in page.inner_text('.sheet .ctable')
+    page.locator('.sheet .chip.pick').nth(1).click(); assert page.locator('.sheet .chip.pick').count() == 2
+    shot(page, '03b-comparateur')
+    page.get_by_role('button', name='Fermer').click()
     # carnet de séance : 6 impacts dont le coup à froid, enregistrement, recalage à partir de la séance
     page.locator('nav.tabs button', has_text='Tir').click()
     page.fill('.dist-val', '600'); page.keyboard.press('Enter'); page.wait_for_timeout(100)
@@ -85,7 +95,7 @@ with sync_playwright() as p:
     page.locator('.item', has_text='Carabine .308').click()
     shot(page, '04-arme')
     page.get_by_role('button', name='Depuis le catalogue').click()
-    page.locator('.sheet .item', has_text='Lapua · 167 gr Scenar').click()
+    page.locator('.sheet .item', has_text='Lapua 167 gr Scenar').click()
     page.wait_for_selector('.sheet h3:has-text("Nouvelle munition")')
     page.locator('.sheet').get_by_role('button', name='Enregistrer').click()
     assert 'Lapua 167 gr Scenar' in page.inner_text('main')
