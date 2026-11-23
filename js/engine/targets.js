@@ -1,16 +1,14 @@
-// Cibles du TAR (cotes en mm, diamètres extérieurs des zones 10 à 1).
-// Zones : règlement TAR FFTir 2025-2026, chapitre VII.1.
-// Visuel noir (recherche du 23/11/2026, règlement officiel non lu : fftir.org inaccessible depuis la session) :
-//   C200 Mod.75 : 400 mm, zones 6 à 10, 10 de 80 mm sans mouche (fiches C200 GEF 1975, règlement MLAIC cité) ;
-//   C200 50 %   : 200 mm, zones 6 à 10, 10 de 40 mm (cible « C200 réduction 100 m » Gravolux, la C200 divisée par deux) ;
-//   C50         : 200 mm, zones 7 à 10, mouche 25 mm (règles ISSF, fiches fabricants).
-// blackSource décrit l'origine ; blackConfirmed passera à true quand le règlement aura été lu.
+// Cibles du TAR (cotes en mm, diamètres extérieurs des zones 10 à 1) : règlement TAR FFTir 2025-2026
+// (diffusion du 12/01/2026), chapitre VII.1, page 45. Le texte donne les zones, la mouche et le cordon ;
+// le diamètre du visuel noir n'est pas écrit en clair : il est relevé sur les dessins officiels de la même page
+// (anneaux restant hors du noir : 5 sur la C200 et la C200 50 %, 6 sur la C50).
+// Comptage des points : « identique à celui appliqué en ISSF », aucune jauge (chapitre VIII).
 // GRID : carton quadrillé sans visuel réglementaire (séances de réglage).
 
 export const TARGETS = {
-  C200: { name: 'C200 Mod.75', use: '200 m · fusils', w: 850, h: 850, zones: [80, 160, 240, 320, 400, 480, 560, 640, 720, 800], black: 400, blackFrom: 6, blackConfirmed: false, blackSource: 'fabricants et règlement MLAIC, à vérifier sur le règlement TAR' },
-  C200_50: { name: 'C200 50 %', use: '200 m (100 m par dérogation)', w: 520, h: 530, zones: [40, 80, 120, 160, 200, 240, 280, 320, 360, 400], black: 200, blackFrom: 6, blackConfirmed: false, blackSource: 'cible Gravolux réduction 100 m, à vérifier sur le règlement TAR' },
-  C50: { name: 'C50', use: '25 m et 50 m', w: 550, h: 520, zones: [50, 100, 150, 200, 250, 300, 350, 400, 450, 500], black: 200, blackFrom: 7, mouche: 25, blackConfirmed: false, blackSource: 'règles ISSF et fabricants, à vérifier sur le règlement TAR' },
+  C200: { name: 'C200 Mod.75', use: '200 m · fusils', w: 850, h: 850, zones: [80, 160, 240, 320, 400, 480, 560, 640, 720, 800], black: 400, blackFrom: 6, cordon: 3, blackConfirmed: true, blackSource: 'dessin du règlement TAR 2025-2026, VII.1' },
+  C200_50: { name: 'C200 50 %', use: '100 m par dérogation (Dx uniquement)', w: 520, h: 530, zones: [40, 80, 120, 160, 200, 240, 280, 320, 360, 400], black: 200, blackFrom: 6, cordon: 1.5, blackConfirmed: true, blackSource: 'dessin du règlement TAR 2025-2026, VII.1' },
+  C50: { name: 'C50', use: '25 m et 50 m', w: 550, h: 520, zones: [50, 100, 150, 200, 250, 300, 350, 400, 450, 500], black: 200, blackFrom: 7, mouche: 25, blackConfirmed: true, blackSource: 'dessin du règlement TAR 2025-2026, VII.1 (RTG ISSF)' },
   GRID: { name: 'Quadrillage', use: 'réglage, toutes distances', w: 500, h: 500, zones: [], black: 0 }
 };
 
@@ -26,16 +24,24 @@ export function score(t, x, y, holeMm = 7.8) {
 }
 
 /**
- * Épreuves TAR proposées en mode match. Données reprises de la maquette : distances, cibles, nombre de coups
- * et durées des phases sont À VÉRIFIER sur le règlement TAR en vigueur (verified: false).
- * phases : [nom, durée en secondes]
+ * Épreuves TAR à l'arme d'épaule sur cible papier : règlement TAR FFTir 2025-2026 (fiches 810 à 823).
+ * phases : [nom, durée (s), coups, position]. Total 25 coups dont 5 d'essai ; score sur 200.
+ * Non reprises : 821 (biathlon), 830 à 832 (pistolet, gongs).
  */
+const P200 = (pos, vitesseS) => [['Essais', 300, 5, pos], ['Précision', 420, 10, pos], ['Vitesse', vitesseS, 10, pos]];
 export const EVENTS = [
-  { id: '810', name: '810 · Répétition manuelle', dist: 200, target: 'C200', shots: 25, phases: [['Essais', 300], ['Précision', 420], ['Vitesse', 180]], verified: false },
-  { id: '813', name: '813 · Tout type assis', dist: 200, target: 'C200', shots: 25, phases: [['Essais', 300], ['Précision', 420], ['Vitesse', 180]], verified: false },
-  { id: '815', name: '815 · Semi-automatique gros calibre', dist: 200, target: 'C200', shots: 25, phases: [['Essais', 300], ['Précision', 420], ['Vitesse', 60]], verified: false },
-  { id: '823', name: '823 · Carabine match', dist: 50, target: 'C50', shots: 25, phases: [['Essais', 300], ['Précision', 420], ['Vitesse', 300]], verified: false }
+  { id: '810', name: '810 · Fusil à répétition manuelle', dist: 200, target: 'C200', shots: 25, phases: P200('couché', 180), verified: true },
+  { id: '811', name: '811 · Fusil modifié, gros calibre', dist: 200, target: 'C200', shots: 25, phases: P200('couché', 180), verified: true },
+  { id: '812', name: '812 · Fusil modifié, petit calibre', dist: 200, target: 'C200', shots: 25, phases: P200('couché', 180), verified: true },
+  { id: '813', name: '813 · Tout type, assis', dist: 200, target: 'C200', shots: 25, phases: P200('assis appui', 180), verified: true },
+  { id: '815', name: '815 · Fusil semi-automatique, gros calibre', dist: 200, target: 'C200', shots: 25, phases: P200('couché', 60), verified: true },
+  { id: '816', name: '816 · Fusil semi-automatique, petit calibre', dist: 200, target: 'C200', shots: 25, phases: P200('couché', 60), verified: true },
+  { id: '820', name: '820 · Carabine militaire d’initiation 22LR', dist: 50, target: 'C50', shots: 25, phases: [['Essais', 300, 5, 'couché'], ['Précision', 420, 10, 'couché'], ['Vitesse', 300, 10, 'debout']], verified: true },
+  { id: '822', name: '822 · Carabine militaire d’initiation 22LR, assis', dist: 50, target: 'C50', shots: 25, phases: [['Essais', 300, 5, 'assis appui'], ['Précision', 420, 10, 'assis appui'], ['Vitesse', 300, 10, 'assis sans appui']], verified: true },
+  { id: '823', name: '823 · Carabine militaire match 22LR', dist: 50, target: 'C50', shots: 25, phases: [['Essais', 300, 5, 'couché'], ['Précision', 420, 10, 'couché'], ['Vitesse', 300, 10, 'debout']], verified: true }
 ];
+/** Dérogation du règlement : épreuves à 200 m tirées à 100 m sur C200 50 % (Dx uniquement). */
+export const DEROGATION_100 = { dist: 100, target: 'C200_50', note: 'dérogation 100 m sur C200 50 % (Dx uniquement)' };
 
 /** Point visé (mm, origine au centre) : plein centre, ou bas du visuel noir en visée à 6 h. */
 export function aimPoint(t, aim) {
