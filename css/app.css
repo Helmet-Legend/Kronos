@@ -301,3 +301,11 @@ nav.tabs button[aria-current="page"] { color: var(--amber); }
   main.tar > .target { grid-column: 1; grid-row: 1 / span 6; width: calc(100dvh - 96px); max-width: 46vw; margin: 0; position: sticky; top: 0; }
 }
 @media (orientation: portrait), (min-height: 521px) { .shell { display: contents; } }
+
+/* Épreuve en cours : bandeau du chrono collé au-dessus de la cible */
+.matchbar { position: sticky; top: 0; z-index: 5; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.matchbar .clock-big { font-size: 44px; line-height: 1; }
+.cmd { margin-top: 6px; font-size: 18px; font-weight: 800; letter-spacing: 0.03em; min-height: 24px; }
+.cmd.ready { color: var(--cyan); }
+.cmd.feu { color: var(--amber); }
+.cmd.stop { color: var(--red); }
