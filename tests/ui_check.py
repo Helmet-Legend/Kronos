@@ -181,7 +181,10 @@ with sync_playwright() as p:
     assert '19 pts' in page.inner_text('main.tar'), page.inner_text('main.tar')
     page.get_by_role('button', name='810 · Fusil à répétition manuelle').click(); page.get_by_role('button', name='Départ', exact=True).click()
     page.wait_for_timeout(300); assert 'Prêts ?' in page.inner_text('.match'), page.inner_text('.match')
-    page.wait_for_timeout(3600); assert 'Pause' in page.inner_text('.match') and 'Feu !' in page.inner_text('.match'), page.inner_text('.match')
+    bar = page.locator('.matchbar'); bar.get_by_role('button', name='Annuler', exact=True).click()
+    for d in ('10', '15', '20'): bar.locator('.chip', has_text='Prêts ' + d + ' s').click()  # 10 s par défaut, on passe à 5 s
+    assert 'Prêts 5 s' in bar.inner_text()
+    page.get_by_role('button', name='Départ', exact=True).click(); page.wait_for_timeout(5600); assert 'Pause' in page.inner_text('.match') and 'Feu !' in page.inner_text('.match'), page.inner_text('.match')
     assert page.evaluate("document.querySelector('main.tar > .matchbar') === document.querySelector('main.tar').firstElementChild"), 'le chrono est au-dessus de la cible'
     page.get_by_role('button', name='Phase suivante').click(); assert 'Précision' in page.inner_text('.match') and '10 coups · couché' in page.inner_text('.match')
     assert '0 / 200' in page.inner_text('main.tar'), 'une nouvelle épreuve repart de zéro'

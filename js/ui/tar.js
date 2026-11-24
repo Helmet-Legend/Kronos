@@ -22,7 +22,8 @@ const tarOf = (s) => ({ target: 'C200', aim: 'centre', ...(s.settings.tar || {})
 /* ---------- Chrono de match ---------- */
 let timer = null;
 const elapsed = (m) => ((m.paused ? m.pausedAt : Date.now()) - m.start) / 1000;
-const COUNTDOWN = 3; // secondes de « Prêts ? » avant « Feu ! »
+const COUNTDOWNS = [5, 10, 15, 20]; // durées de « Prêts ? » proposées, en secondes
+const countdownS = () => { const c = tarOf(app.state).countdown; return COUNTDOWNS.includes(c) ? c : 10; };
 
 // Bips du pas de tir (Web Audio, lancé par un toucher sur « Départ »)
 let audio = null;
@@ -53,7 +54,7 @@ function tick() {
   if (m.countdown) {
     // « Prêts ? » : compte à rebours avant le départ de la série
     const left = Math.ceil((m.countdown - Date.now()) / 1000);
-    if (left > 0) { if (left !== m.lastCount) { m.lastCount = left; beep(660, 90); setCmd(m, 'Prêts ? ' + left, 'ready'); } return; }
+    if (left > 0) { if (left !== m.lastCount) { m.lastCount = left; if (left <= 3) beep(660, 90); setCmd(m, 'Prêts ? ' + left, 'ready'); } return; }
     m.countdown = null; m.lastCount = null;
     m.start += Date.now() - m.pausedAt; m.paused = false;
     beep(1320, 450); vibrate(200); setCmd(m, 'Feu !', 'feu');
@@ -98,7 +99,7 @@ function startStop(ev) {
   buzz();
   if (m.countdown) { m.countdown = null; m.lastCount = null; m.cmd = null; }
   else if (m.paused) {
-    if (c.left >= ev.phases[c.index][1] - 0.5) { m.countdown = Date.now() + COUNTDOWN * 1000; m.lastCount = null; beep(660, 1); toTop(); }
+    if (c.left >= ev.phases[c.index][1] - 0.5) { m.countdown = Date.now() + countdownS() * 1000; m.lastCount = null; beep(660, 1); toTop(); }
     else { m.start += Date.now() - m.pausedAt; m.paused = false; m.cmd = 'Feu !'; m.cmdKind = 'feu'; beep(1320, 300); }
     startTimer();
   } else { m.paused = true; m.pausedAt = Date.now(); m.cmd = null; stopTimer(); }
@@ -136,6 +137,8 @@ function matchBar(ev) {
   return h('section', { class: 'card match matchbar' },
     h('div', { class: 'row' },
       h('span', { class: 'label grow' }, ev.name),
+      h('button', { class: 'chip', 'aria-label': 'Durée de « Prêts ? » avant « Feu ! » : ' + countdownS() + ' secondes, toucher pour changer', disabled: m.countdown ? true : null,
+        onClick: () => tarSet({ countdown: COUNTDOWNS[(COUNTDOWNS.indexOf(countdownS()) + 1) % COUNTDOWNS.length] }) }, 'Prêts ' + countdownS() + ' s'),
       h('button', { class: 'chip', 'aria-pressed': String(sound), 'aria-label': sound ? 'Couper les bips' : 'Activer les bips', onClick: () => tarSet({ sound: !sound }) }, sound ? 'Bips' : 'Muet')),
     h('div', { class: 'row', style: { margin: '4px 0' } },
       h('div', { class: 'grow', style: { minWidth: '0' } },
