@@ -53,3 +53,38 @@ test('cible vitesse 25 m : zones 10 à 5, mouche de 50 mm', () => {
   assert.equal(score(T, 0, 120, 9), 8);
   assert.equal(score(T, 0, 260, 9), 0);
 });
+
+test('modèles d’armes de poing : calibres reconnus, Glock 34 refusé, revolvers 357 admis en 38 Spécial', async () => {
+  const { HANDGUNS, AMMO } = await import('../js/data/catalog.js');
+  const { calibrePoing, checkPoing } = await import('../js/engine/poing.js');
+  const M = await import('../js/data/model.js');
+  assert.equal(new Set(HANDGUNS.map((p) => p.id)).size, HANDGUNS.length, 'identifiants uniques');
+  for (const p of HANDGUNS) {
+    const g = M.newGun({ type: 'poing', name: p.name, cal: p.cal, barrelMm: p.barrelMm, twist: p.twist, twistDir: p.twistDir, sight: { kind: 'iron' }, sightH: p.sightH, zero: 25,
+      hand: { type: p.type, triggerKg: p.triggerKg ?? 2, cat: p.cat, interdits: {}, ammo38: !!p.ammo38 } });
+    assert.deepEqual(M.checkGun(g), [], p.name);
+    assert.ok(calibrePoing(p.cal) || (p.ammo38 && /357/.test(p.cal)), p.name + ' : calibre de l’annexe A-830');
+    assert.ok(p.verify || !p.src.includes('à vérifier sur votre arme'), p.name);
+    const c = checkPoing(g);
+    if (p.id === 'glock34') assert.equal(c.ok, false, 'Glock 34 : canon de 135 mm');
+    else assert.deepEqual(c.events, p.cat === 'authentique' ? ['832', '831'] : ['830', '831'], p.name);
+  }
+  // un revolver 357 sans munitions de 38 Spécial n'est pas admis
+  const mr = HANDGUNS.find((p) => p.id === 'mr73');
+  assert.equal(checkPoing({ cal: mr.cal, barrelMm: mr.barrelMm, sight: { kind: 'iron' }, hand: { type: 'revolver', triggerKg: 2, cat: 'recente', interdits: {} } }).ok, false);
+  // chaque calibre d'arme de poing a au moins une munition au catalogue, sauf les calibres anciens rares
+  const rare = ['8 mm 1892', '455 Webley'];
+  for (const p of HANDGUNS) if (!rare.includes(p.cal)) assert.ok(AMMO.some((a) => a.cal === (p.ammo38 ? '38 Spécial' : p.cal)), p.name + ' : munition au catalogue');
+});
+
+test('modèles d’armes d’épaule : données valides et munition au catalogue', async () => {
+  const { RIFLES, AMMO } = await import('../js/data/catalog.js');
+  const M = await import('../js/data/model.js');
+  for (const p of RIFLES) {
+    const g = M.newGun({ name: p.name, cal: p.cal, barrelMm: p.barrelMm, twist: p.twist, twistDir: p.twistDir, sightH: p.sightH,
+      sight: p.tangent ? { kind: 'iron', tangent: { ...p.tangent, crans: {} } } : { kind: 'iron' } });
+    assert.deepEqual(M.checkGun(g), [], p.name);
+    assert.ok(AMMO.some((a) => a.cal === p.cal), p.name + ' : munition au catalogue');
+    assert.ok(p.verify && p.src, p.name + ' : marqué à vérifier');
+  }
+});

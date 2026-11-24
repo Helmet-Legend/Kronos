@@ -3,7 +3,7 @@ import { h, icon, fill } from './dom.js';
 import { num, int, timeFr, parseNum, dateFr } from './format.js';
 import { app, set, closeSheet, openSheet, toast, M } from '../app.js';
 import { fetchMeteo, windHour } from '../data/meteo.js';
-import { AMMO, SIGHTS, DISCIPLINES, HANDGUNS } from '../data/catalog.js';
+import { AMMO, SIGHTS, DISCIPLINES, HANDGUNS, RIFLES } from '../data/catalog.js';
 import { INTERDITS_POING } from '../engine/poing.js';
 import { qnhFromStation, stationFromQnh } from '../engine/atmo.js';
 import { tipCard } from './aide.js';
@@ -21,6 +21,17 @@ export function field(label, value, o = {}) {
   const input = h('input', { id, type: 'text', inputmode: o.text ? 'text' : 'decimal', value: value === undefined || value === null ? '' : String(value).replace('.', o.text ? '.' : ','), autocomplete: 'off', placeholder: o.placeholder || '' });
   const el = h('div', { class: 'field' }, h('label', { for: id }, label), input, o.help ? h('span', { class: 'help' }, o.help) : null);
   return { el, input, get: () => (o.text ? input.value.trim() : parseNum(input.value)) };
+}
+
+/** Liste de modèles groupés : choisir un modèle préremplit le formulaire (rien n'est enregistré avant « Enregistrer »). */
+function modelPicker(label, groups, onPick) {
+  const id = 'f_' + Math.random().toString(36).slice(2, 8);
+  const all = groups.flatMap(([, list]) => list);
+  const sel = h('select', { id, onChange: () => { const p = all.find((x) => x.id === sel.value); if (p) onPick(p); } },
+    h('option', { value: '' }, 'Choisir un modèle…'),
+    groups.map(([g, list]) => h('optgroup', { label: g }, list.map((p) => h('option', { value: p.id }, p.name + ' · ' + p.cal)))));
+  return { el: h('div', { class: 'field' }, h('label', { for: id }, label), sel,
+    h('small', { class: 'muted', style: { fontSize: '12px' } }, 'Facultatif. Arme absente de la liste : laissez « Choisir un modèle… » et remplissez les champs ci-dessous.')), sel };
 }
 
 function select(label, value, options) {
@@ -146,15 +157,32 @@ export function gunSheet(gunId) {
     const b = h('button', { class: 'chip', type: 'button', 'aria-pressed': String(!!inter[k]), onClick: () => { inter[k] = !inter[k]; b.setAttribute('aria-pressed', String(!!inter[k])); } }, label);
     return b;
   }));
-  const hPresets = h('div', { class: 'chips' }, HANDGUNS.map((p) => h('button', { class: 'chip', type: 'button', onClick: () => {
-    if (!name.get() || name.get() === 'Nouvelle arme') name.input.value = p.name;
-    cal.input.value = p.cal; barrel.input.value = String(p.barrelMm); twist.input.value = String(p.twist); dir.sel.value = 'R';
-    hType.sel.value = p.type; trig.input.value = String(p.triggerKg).replace('.', ','); hCat.sel.value = p.cat;
-    sightH.input.value = String(Math.round(p.sightH * 1000)); zero.input.value = '25'; toast(p.name + ' : ' + p.src);
-  } }, p.name)));
+  const ammo38 = { on: !!hd.ammo38 };
+  const a38 = h('button', { class: 'chip', type: 'button', 'aria-pressed': String(ammo38.on), onClick: () => { ammo38.on = !ammo38.on; a38.setAttribute('aria-pressed', String(ammo38.on)); } }, 'Revolver 357 tiré en 38 Spécial');
+  const note = h('div', { class: 'muted', style: { fontSize: '12px', lineHeight: '1.45' } });
+  const showSrc = (p) => { note.textContent = p.name + ' : ' + p.src + '.'; toast(p.verify ? p.name + ' : valeurs à vérifier sur votre arme' : p.name + ' : données du fabricant'); };
+  const common = (p) => {
+    if (!name.get() || name.get() === 'Nouvelle arme' || pickedName === name.get()) { name.input.value = p.name; pickedName = p.name; }
+    cal.input.value = p.cal; barrel.input.value = String(p.barrelMm); twist.input.value = String(p.twist); dir.sel.value = p.twistDir || 'R';
+    sightH.input.value = String(Math.round(p.sightH * 1000));
+  };
+  let pickedName = null;
+  const hPresets = modelPicker('Modèle', [['Armes récentes (830, 831)', HANDGUNS.filter((p) => p.cat === 'recente')], ['Armes authentiques (832, 831)', HANDGUNS.filter((p) => p.cat === 'authentique')]], (p) => {
+    common(p); hType.sel.value = p.type; trig.input.value = p.triggerKg ? String(p.triggerKg).replace('.', ',') : ''; hCat.sel.value = p.cat;
+    ammo38.on = !!p.ammo38; a38.setAttribute('aria-pressed', String(ammo38.on));
+    zero.input.value = '25'; showSrc(p); sync();
+  });
+  const rPresets = modelPicker('Modèle', [['Armes réglementaires et historiques', RIFLES.filter((p) => p.id !== 'ar15')], ['Armes récentes', RIFLES.filter((p) => p.id === 'ar15')]], (p) => {
+    common(p); kind.sel.value = 'iron';
+    if (p.tangent) { tKind.sel.value = 'grad'; tMin.input.value = String(p.tangent.min); tMax.input.value = String(p.tangent.max); tStep.input.value = String(p.tangent.step); }
+    else tKind.sel.value = 'fixe';
+    showSrc(p); sync();
+  });
+  const rifleBox = h('div', null, rPresets.el), handTop = h('div', null, hPresets.el);
   const poingBox = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
-    h('h2', null, 'Arme de poing'), h('div', { class: 'muted', style: { fontSize: '12px' } }, 'Modèles préremplis (données du fabricant, à vérifier) :'), hPresets,
-    h('div', { class: 'grid2' }, hType.el, trig.el), hCat.el,
+    h('h2', null, 'Arme de poing'),
+    h('div', { class: 'grid2' }, hType.el, trig.el), h('div', { class: 'muted', style: { fontSize: '12px', marginTop: '-6px' } }, 'Poids de détente : à mesurer au poids, comme au contrôle des armes.'), hCat.el,
+    h('div', null, a38),
     h('div', null, h('span', { class: 'label' }, 'Accessoires présents (interdits en TAR)'), h('div', { style: { marginTop: '6px' } }, interChips)));
   const presets = h('div', { class: 'chips' }, SIGHTS.map((p) => h('button', { class: 'chip', type: 'button', onClick: () => {
     kind.sel.value = p.kind; if (p.unit) unit.sel.value = p.unit; if (p.click) click.input.value = String(p.click).replace('.', ','); sightH.input.value = String(Math.round(p.sightH * 1000));
@@ -164,7 +192,7 @@ export function gunSheet(gunId) {
   const scopeBox = h('div', { class: 'grid2' }, unit.el, click.el);
   const sync = () => {
     const poing = gType.get() === 'poing';
-    poingBox.style.display = poing ? '' : 'none';
+    poingBox.style.display = poing ? '' : 'none'; rifleBox.style.display = poing ? 'none' : ''; handTop.style.display = poing ? '' : 'none';
     if (poing) kind.sel.value = 'iron';
     kind.el.style.display = poing ? 'none' : ''; presets.style.display = poing ? 'none' : '';
     const iron = kind.get() === 'iron';
@@ -184,7 +212,7 @@ export function gunSheet(gunId) {
     if (ng.type === 'poing') {
       ng.sight = { kind: 'iron' };
       const tk = trig.get();
-      ng.hand = { type: hType.get(), triggerKg: isFinite(tk) ? tk : null, cat: hCat.get(), interdits: { ...inter } };
+      ng.hand = { type: hType.get(), triggerKg: isFinite(tk) ? tk : null, cat: hCat.get(), interdits: { ...inter }, ammo38: ammo38.on && /357/.test(ng.cal) };
     }
     const e = M.checkGun(ng);
     if (e.length) { errors.textContent = e.join(' · '); return; }
@@ -193,7 +221,7 @@ export function gunSheet(gunId) {
     closeSheet(); toast(isNew ? 'Arme ajoutée' : 'Arme enregistrée');
   };
   return frame(isNew ? 'Nouvelle arme' : 'Modifier l’arme',
-    gType.el, name.el, cal.el, h('div', { class: 'grid2' }, barrel.el, twist.el), dir.el, poingBox,
+    gType.el, rifleBox, handTop, name.el, note, cal.el, h('div', { class: 'grid2' }, barrel.el, twist.el), dir.el, poingBox,
     h('h2', null, 'Visée'), presets, kind.el, scopeBox, tKind.el, tBox, h('div', { class: 'grid2' }, sightH.el, zero.el), disp.el,
     errors, h('button', { class: 'btn primary block', onClick: save }, 'Enregistrer'));
 }
