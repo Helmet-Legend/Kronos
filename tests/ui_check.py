@@ -179,19 +179,26 @@ with sync_playwright() as p:
     for x, y in [(0, 0), (0, 50)]:
         page.mouse.click(bx['x'] + (0.5 + x / 850) * bx['width'], bx['y'] + (0.5 - y / 850) * bx['height'])
     assert '19 pts' in page.inner_text('main.tar'), page.inner_text('main.tar')
-    page.get_by_role('button', name='810 · Fusil à répétition manuelle').click(); page.get_by_role('button', name='Démarrer').click()
-    page.wait_for_timeout(1300); assert 'Pause' in page.inner_text('.match')
+    page.get_by_role('button', name='810 · Fusil à répétition manuelle').click(); page.get_by_role('button', name='Départ', exact=True).click()
+    page.wait_for_timeout(300); assert 'Prêts ?' in page.inner_text('.match'), page.inner_text('.match')
+    bar = page.locator('.matchbar'); bar.get_by_role('button', name='Annuler', exact=True).click()
+    for d in ('10', '15', '20'): bar.locator('.chip', has_text='Prêts ' + d + ' s').click()  # 10 s par défaut, on passe à 5 s
+    assert 'Prêts 5 s' in bar.inner_text()
+    page.get_by_role('button', name='Départ', exact=True).click(); page.wait_for_timeout(5600); assert 'Pause' in page.inner_text('.match') and 'Feu !' in page.inner_text('.match'), page.inner_text('.match')
+    assert page.evaluate("document.querySelector('main.tar > .matchbar') === document.querySelector('main.tar').firstElementChild"), 'le chrono est au-dessus de la cible'
     page.get_by_role('button', name='Phase suivante').click(); assert 'Précision' in page.inner_text('.match') and '10 coups · couché' in page.inner_text('.match')
-    assert '0 pts' in page.inner_text('main.tar'), 'une nouvelle épreuve repart de zéro'
-    page.locator('main.tar .target').scroll_into_view_if_needed(); bx = page.locator('main.tar .target svg').bounding_box()
+    assert '0 / 200' in page.inner_text('main.tar'), 'une nouvelle épreuve repart de zéro'
+    # pendant l'épreuve, la cible est juste sous le chrono, sans défiler
+    page.evaluate("document.querySelector('main.tar').scrollTop = 0"); bx = page.locator('main.tar .target svg').bounding_box()
+    assert bx['y'] + bx['height'] <= 844 - 70, 'cible visible avec le chrono'
     for x, y in [(0, 0), (0, 50)]:
         page.mouse.click(bx['x'] + (0.5 + x / 850) * bx['width'], bx['y'] + (0.5 - y / 850) * bx['height'])
-    assert 'Coups saisis : 2 / 25' in page.inner_text('.match')
+    assert '19 / 100' in page.inner_text('main.tar'), page.inner_text('main.tar')[-400:]
     shot(page, '05b-tar')
     page.locator('main.tar').get_by_role('button', name='Enregistrer').click()
     assert 'points' in page.inner_text('.toast'), page.inner_text('.toast')
     page.get_by_role('button', name='Fermer').click()
-    page.locator('.match').get_by_role('button', name='Arrêter').click(); page.locator('.sheet').get_by_role('button', name='Arrêter').click()
+    assert page.locator('.match').count() == 0, 'enregistrer termine l’épreuve'
     page.locator('nav.tabs button', has_text='Tir').click()
     # thème nuit
     page.locator('nav.tabs button', has_text='Réglages').click()

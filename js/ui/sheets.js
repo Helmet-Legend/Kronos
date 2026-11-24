@@ -3,7 +3,8 @@ import { h, icon, fill } from './dom.js';
 import { num, int, timeFr, parseNum, dateFr } from './format.js';
 import { app, set, closeSheet, openSheet, toast, M } from '../app.js';
 import { fetchMeteo, windHour } from '../data/meteo.js';
-import { AMMO, SIGHTS, DISCIPLINES } from '../data/catalog.js';
+import { AMMO, SIGHTS, DISCIPLINES, HANDGUNS } from '../data/catalog.js';
+import { INTERDITS_POING } from '../engine/poing.js';
 import { qnhFromStation, stationFromQnh } from '../engine/atmo.js';
 import { tipCard } from './aide.js';
 
@@ -134,6 +135,27 @@ export function gunSheet(gunId) {
   const tMin = field('Premier cran (m)', tg ? tg.min : 100), tMax = field('Dernier cran (m)', tg ? tg.max : 2000), tStep = field('Écart entre crans (m)', tg ? tg.step : 100);
   const tBox = h('div', { class: 'grid3' }, tMin.el, tMax.el, tStep.el);
   const disp = field('Dispersion arme + tireur (MOA)', g.dispersionMoa ?? 1.5, { help: 'Votre groupement habituel à 100 m en MOA (1 MOA ≈ 2,9 cm). Sert à la zone probable d’impact.' });
+  // Arme de poing
+  const hd = g.hand || {};
+  const gType = select('Type d’arme', g.type === 'poing' ? 'poing' : 'epaule', [['epaule', 'Arme d’épaule (carabine, fusil)'], ['poing', 'Arme de poing (pistolet, revolver)']]);
+  const hType = select('Pistolet ou revolver', hd.type || 'pistolet', [['pistolet', 'Pistolet'], ['revolver', 'Revolver']]);
+  const trig = field('Poids de détente (kg)', hd.triggerKg ?? '', { help: 'Règlement TAR : 1,360 kg au moins.' });
+  const hCat = select('Catégorie TAR', hd.cat || 'recente', [['recente', 'Arme récente (épreuves 830 et 831)'], ['authentique', 'Arme authentique, annexe A-832 (832 et 831)']]);
+  const inter = { ...(hd.interdits || {}) };
+  const interChips = h('div', { class: 'chips' }, Object.entries(INTERDITS_POING).map(([k, label]) => {
+    const b = h('button', { class: 'chip', type: 'button', 'aria-pressed': String(!!inter[k]), onClick: () => { inter[k] = !inter[k]; b.setAttribute('aria-pressed', String(!!inter[k])); } }, label);
+    return b;
+  }));
+  const hPresets = h('div', { class: 'chips' }, HANDGUNS.map((p) => h('button', { class: 'chip', type: 'button', onClick: () => {
+    if (!name.get() || name.get() === 'Nouvelle arme') name.input.value = p.name;
+    cal.input.value = p.cal; barrel.input.value = String(p.barrelMm); twist.input.value = String(p.twist); dir.sel.value = 'R';
+    hType.sel.value = p.type; trig.input.value = String(p.triggerKg).replace('.', ','); hCat.sel.value = p.cat;
+    sightH.input.value = String(Math.round(p.sightH * 1000)); zero.input.value = '25'; toast(p.name + ' : ' + p.src);
+  } }, p.name)));
+  const poingBox = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+    h('h2', null, 'Arme de poing'), h('div', { class: 'muted', style: { fontSize: '12px' } }, 'Modèles préremplis (données du fabricant, à vérifier) :'), hPresets,
+    h('div', { class: 'grid2' }, hType.el, trig.el), hCat.el,
+    h('div', null, h('span', { class: 'label' }, 'Accessoires présents (interdits en TAR)'), h('div', { style: { marginTop: '6px' } }, interChips)));
   const presets = h('div', { class: 'chips' }, SIGHTS.map((p) => h('button', { class: 'chip', type: 'button', onClick: () => {
     kind.sel.value = p.kind; if (p.unit) unit.sel.value = p.unit; if (p.click) click.input.value = String(p.click).replace('.', ','); sightH.input.value = String(Math.round(p.sightH * 1000));
     if (p.kind === 'iron') { tKind.sel.value = p.tangent ? 'grad' : 'fixe'; if (p.tangent) { tMin.input.value = String(p.tangent.min); tMax.input.value = String(p.tangent.max); tStep.input.value = String(p.tangent.step); } }
@@ -141,19 +163,29 @@ export function gunSheet(gunId) {
   } }, p.name)));
   const scopeBox = h('div', { class: 'grid2' }, unit.el, click.el);
   const sync = () => {
+    const poing = gType.get() === 'poing';
+    poingBox.style.display = poing ? '' : 'none';
+    if (poing) kind.sel.value = 'iron';
+    kind.el.style.display = poing ? 'none' : ''; presets.style.display = poing ? 'none' : '';
     const iron = kind.get() === 'iron';
     scopeBox.style.display = iron ? 'none' : '';
     tKind.el.style.display = iron ? '' : 'none';
-    tBox.style.display = iron && tKind.get() === 'grad' ? '' : 'none';
+    tBox.style.display = iron && tKind.get() === 'grad' && !poing ? '' : 'none';
+    tKind.el.style.display = iron && !poing ? '' : 'none';
   };
-  kind.sel.addEventListener('change', sync); tKind.sel.addEventListener('change', sync); sync();
+  kind.sel.addEventListener('change', sync); tKind.sel.addEventListener('change', sync); gType.sel.addEventListener('change', () => { if (gType.get() === 'poing' && Number(zero.get()) === 100) zero.input.value = '25'; sync(); }); sync();
   const errors = h('div', { class: 'errors', role: 'alert' });
 
   const save = () => {
     const ng = { ...g, name: name.get(), cal: cal.get(), barrelMm: barrel.get(), twist: twist.get(), twistDir: dir.get(),
       sight: kind.get() === 'scope' ? { kind: 'scope', unit: unit.get(), click: click.get() }
         : tKind.get() === 'grad' ? { kind: 'iron', tangent: { min: tMin.get(), max: tMax.get(), step: tStep.get(), crans: (tg && tg.crans) || {} } } : { kind: 'iron' },
-      sightH: sightH.get() / 1000, zero: zero.get(), dispersionMoa: disp.get() };
+      sightH: sightH.get() / 1000, zero: zero.get(), dispersionMoa: disp.get(), type: gType.get() };
+    if (ng.type === 'poing') {
+      ng.sight = { kind: 'iron' };
+      const tk = trig.get();
+      ng.hand = { type: hType.get(), triggerKg: isFinite(tk) ? tk : null, cat: hCat.get(), interdits: { ...inter } };
+    }
     const e = M.checkGun(ng);
     if (e.length) { errors.textContent = e.join(' · '); return; }
     if (isNew) app.armeId = ng.id;
@@ -161,7 +193,7 @@ export function gunSheet(gunId) {
     closeSheet(); toast(isNew ? 'Arme ajoutée' : 'Arme enregistrée');
   };
   return frame(isNew ? 'Nouvelle arme' : 'Modifier l’arme',
-    name.el, cal.el, h('div', { class: 'grid2' }, barrel.el, twist.el), dir.el,
+    gType.el, name.el, cal.el, h('div', { class: 'grid2' }, barrel.el, twist.el), dir.el, poingBox,
     h('h2', null, 'Visée'), presets, kind.el, scopeBox, tKind.el, tBox, h('div', { class: 'grid2' }, sightH.el, zero.el), disp.el,
     errors, h('button', { class: 'btn primary block', onClick: save }, 'Enregistrer'));
 }
