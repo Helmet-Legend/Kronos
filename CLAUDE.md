@@ -81,6 +81,7 @@ Schéma de données 2 (`SCHEMA` dans `model.js`, migration `migrate()` appliqué
 6. ~~**Développement de charge**~~ (fait en v0.9.0), ~~**cibles et épreuves TAR**~~ (fait en v0.10.0, données du règlement officiel en v0.11.3) (C200, C200 50 %, C50 ; épreuves 810, 813, 815, 823), chrono de match.
 7. **Dossier « Séances contrôlées »**, à part et verrouillé. Première demande en catégorie B : 3 séances sur 12 mois, espacées d'au moins 2 mois. Le carnet papier est supprimé depuis 2020 : le registre du club fait foi, l'app tient un relevé personnel non officiel. Visa signé au doigt, fiche verrouillée après signature, relevé PDF.
 8. ~~Onboarding et bulles d'aide~~ (fait en v0.8.0), mode paysage enrichi.
+9. **Compteur de coups au micro** (maquette : https://claude.ai/artifact/U6XaRCnr5zYaZpAw2KmtEE) : option coupée par défaut dans le bandeau du chrono, détections sur une frise (niveau en dB), seuil réglable et calé par k-moyennes entre vos coups et ceux des voisins, correction d'un toucher, temps des coups, ajout au compteur seulement après accord. L'utilisateur tire avec des voisins : la séparation reste à valider au stand. Décidé : dans la vraie version, pas de « stand simulé » ni de boutons « + Mon coup » / « + Coup du voisin » (maquette seulement), seulement le micro.
 
 ## Vérifier avant de livrer
 
