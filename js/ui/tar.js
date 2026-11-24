@@ -4,12 +4,14 @@ import { num, int } from './format.js';
 import { app, set, ui, compute, cranInfo, toast, confirm, openSheet, metForCalc, buzz, M } from '../app.js';
 import { solve } from '../engine/solver.js';
 import { confidence } from '../engine/confidence.js';
-import { TARGETS, EVENTS, aimPoint, score, totalScore, matchClock } from '../engine/targets.js';
+import { TARGETS, EVENTS, aimPoint, score, totalScore, matchClock, phaseTarget, phaseScored, eventScore } from '../engine/targets.js';
+import { checkPoing } from '../engine/poing.js';
 import { carnetSheet } from './carnet.js';
 import { impactPad, selectionBar } from './impacts.js';
 import { tipCard } from './aide.js';
 
 const TAR_TARGETS = ['C200', 'C200_50', 'C50'];
+const POING_TARGETS = ['C50', 'VITESSE'];
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const cm = (mm, pos, neg) => (Math.abs(mm) < 5 ? 'au centre' : num(Math.abs(mm) / 10, 0) + ' cm ' + (mm > 0 ? pos : neg));
 const mmss = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
@@ -25,9 +27,15 @@ function tick() {
   if (!m || m.paused || app.view !== 'tar') { stopTimer(); return; }
   const ev = EVENTS.find((e) => e.id === m.eventId), c = matchClock(ev.phases, elapsed(m));
   if (c.index !== m.lastPhase || c.done) {
-    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) { /* ignoré */ }
-    m.lastPhase = c.index;
-    if (c.done) { m.paused = true; m.pausedAt = Date.now(); toast('Épreuve terminée'); }
+    try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) { /* ignoré */ }
+    if (c.done) { m.paused = true; m.pausedAt = m.start + ev.phases.reduce((a, p) => a + p[1], 0) * 1000; toast('Épreuve terminée'); }
+    else {
+      // fin de phase : le chrono s'arrête au début de la phase suivante, le tireur relance « Départ »
+      const b = ev.phases.slice(0, c.index).reduce((a, p) => a + p[1], 0);
+      m.paused = true; m.pausedAt = m.start + b * 1000;
+      toast('Fin de « ' + ev.phases[m.lastPhase][0] + ' » · Départ pour la suite');
+    }
+    m.lastPhase = c.index; stopTimer();
     ui({});
     return;
   }
@@ -38,37 +46,48 @@ function tick() {
 function startTimer() { if (!timer) timer = setInterval(tick, 1000); }
 function stopTimer() { clearInterval(timer); timer = null; }
 
-function matchCard(ev) {
+function matchCard(ev, gun) {
   const m = app.match;
   if (!m) {
+    const poing = gun.type === 'poing', ok = poing ? checkPoing(gun).events : null;
     return h('section', { class: 'card' },
       h('span', { class: 'label' }, 'Match'),
-      h('div', { class: 'chips', style: { margin: '8px 0' } }, EVENTS.map((e) => h('button', { class: 'chip', onClick: () => {
-        app.tarShots = [];
-        app.match = { eventId: e.id, start: Date.now(), paused: true, pausedAt: Date.now(), lastPhase: 0 };
+      h('div', { class: 'chips', style: { margin: '8px 0' } }, EVENTS.filter((e) => e.kind === (poing ? 'poing' : 'epaule')).map((e) => h('button', { class: 'chip', onClick: () => {
+        app.tarShots = []; app.tarSel = null;
+        app.match = { eventId: e.id, start: Date.now(), paused: true, pausedAt: Date.now(), lastPhase: 0, per: {} };
         set((s) => ({ ...s, shot: { ...s.shot, dist: e.dist }, settings: { ...s.settings, tar: { ...tarOf(s), target: e.target } } }));
-      } }, e.name))),
-      h('p', { class: 'muted', style: { fontSize: '12px', margin: '0', lineHeight: '1.45' } }, 'Choisir une épreuve règle la cible et la distance, puis prépare le chrono. Phases, durées et positions : règlement TAR FFTir 2025-2026. Les épreuves à 200 m peuvent se tirer à 100 m sur C200 50 % par dérogation (Dx uniquement).'));
+      } }, e.name + (ok && !ok.includes(e.id) ? ' (non admise)' : '')))),
+      h('p', { class: 'muted', style: { fontSize: '12px', margin: '0', lineHeight: '1.45' } }, poing
+        ? 'Choisir une épreuve règle la cible et la distance (25 m). Chaque série s’arrête seule : « Départ » lance la suivante. Règlement TAR FFTir 2025-2026, fiches 830 à 832.'
+        : 'Choisir une épreuve règle la cible et la distance, puis prépare le chrono. Chaque phase s’arrête seule : « Départ » lance la suivante. Règlement TAR FFTir 2025-2026. Les épreuves à 200 m peuvent se tirer à 100 m sur C200 50 % par dérogation (Dx uniquement).'));
   }
   const c = matchClock(ev.phases, elapsed(m));
   const jump = (i) => { const before = ev.phases.slice(0, i).reduce((a, p) => a + p[1], 0); const now = Date.now(); m.start = now - before * 1000; if (m.paused) m.pausedAt = now; m.lastPhase = i; ui({}); };
   return h('section', { class: 'card match' },
-    h('div', { class: 'row' }, h('span', { class: 'label grow' }, ev.name), h('span', { class: 'muted', style: { fontSize: '12px' } }, ev.dist + ' m · ' + TARGETS[ev.target].name)),
+    h('div', { class: 'row' }, h('span', { class: 'label grow' }, ev.name), h('span', { class: 'muted', style: { fontSize: '12px' } }, ev.dist + ' m · ' + (phaseTarget(ev, c.index) === 'GONG' ? 'gongs' : TARGETS[phaseTarget(ev, c.index)].name))),
     h('div', { class: 'row', style: { margin: '6px 0' } },
       h('div', { class: 'grow' }, h('div', { style: { fontWeight: '700' } }, 'Phase ' + (c.index + 1) + '/' + ev.phases.length + ' · ' + c.name), h('div', { class: 'muted', style: { fontSize: '12px' } }, ev.phases[c.index][2] + ' coups · ' + ev.phases[c.index][3] + ' · ' + (c.done ? 'terminée' : m.paused ? 'en pause' : 'en cours'))),
       h('div', { id: 'match-clock', class: 'clock-big mono' + (c.left <= 30 && !c.done ? ' warn' : ''), role: 'timer', 'aria-label': 'Temps restant' }, mmss(c.left))),
     h('div', { class: 'grid3' },
-      h('button', { class: 'btn' + (m.paused ? ' primary' : ''), disabled: c.done ? true : null, onClick: () => { if (m.paused) { m.start += Date.now() - m.pausedAt; m.paused = false; startTimer(); } else { m.paused = true; m.pausedAt = Date.now(); stopTimer(); } buzz(); ui({}); } }, m.paused ? (elapsed(m) < 0.5 ? 'Démarrer' : 'Reprendre') : 'Pause'),
+      h('button', { class: 'btn' + (m.paused ? ' primary' : ''), disabled: c.done ? true : null, onClick: () => { if (m.paused) { m.start += Date.now() - m.pausedAt; m.paused = false; startTimer(); } else { m.paused = true; m.pausedAt = Date.now(); stopTimer(); } buzz(); ui({}); } }, m.paused ? (c.left >= ev.phases[c.index][1] - 0.5 ? 'Départ' : 'Reprendre') : 'Pause'),
       h('button', { class: 'btn', disabled: c.index >= ev.phases.length - 1 ? true : null, onClick: () => jump(c.index + 1) }, 'Phase suivante'),
-      h('button', { class: 'btn danger', onClick: () => confirm({ title: 'Arrêter l’épreuve ?', text: app.tarShots.length ? 'Les ' + app.tarShots.length + ' impacts saisis restent à l’écran : enregistrez-les dans le carnet si besoin.' : 'Le chrono est remis à zéro.', ok: 'Arrêter', onOk: () => { stopTimer(); app.match = null; ui({}); } }) }, 'Arrêter')),
-    h('div', { class: 'muted', style: { fontSize: '12px', marginTop: '6px' } }, 'Coups saisis : ' + app.tarShots.length + ' / ' + ev.shots + ' · score sur ' + (ev.shots - ev.phases[0][2]) * 10));
+      h('button', { class: 'btn danger', onClick: () => confirm({ title: 'Arrêter l’épreuve ?', text: 'Le chrono et le score de l’épreuve sont remis à zéro. Enregistrez avant si besoin.', ok: 'Arrêter', onOk: () => { stopTimer(); app.match = null; ui({}); } }) }, 'Arrêter')),
+    h('div', { class: 'muted', style: { fontSize: '12px', marginTop: '6px' } }, 'Phase : ' + ev.phases[c.index][2] + ' coups' + (phaseScored(ev, c.index) ? '' : ', non comptés') + ' · épreuve de ' + ev.shots + ' coups, score sur 200'));
 }
 
 /* ---------- Écran ---------- */
 export function renderTar() {
-  const s = app.state, tar = tarOf(s), T = TARGETS[tar.target], sh = s.shot;
+  const s = app.state, tar = tarOf(s), sh = s.shot;
   const cmp = compute(s, [sh.dist]);
   const { gun, load } = cmp;
+  const poing = gun.type === 'poing';
+  const ev = app.match ? EVENTS.find((e) => e.id === app.match.eventId) : null;
+  const clock = ev ? matchClock(ev.phases, elapsed(app.match)) : null;
+  const pIdx = clock ? clock.index : null;
+  const pCode = ev ? phaseTarget(ev, pIdx) : null;
+  const pData = ev ? (app.match.per[pIdx] = app.match.per[pIdx] || { shots: [], gongs: [false, false, false, false, false] }) : null;
+  const tgtKey = ev ? (pCode === 'GONG' ? ev.target : pCode) : ((poing ? POING_TARGETS : TAR_TARGETS).includes(tar.target) ? tar.target : (poing ? 'C50' : 'C200'));
+  const T = TARGETS[tgtKey];
   let { args, res } = cmp;
   const aim = aimPoint(T, tar.aim);
   const ci = cranInfo(s, args, gun, sh.dist);
@@ -89,7 +108,6 @@ export function renderTar() {
   const conf = r && r.reached ? confidence(args, sh.dist, gun.dispersionMoa) : null;
   const hole = load.dMm || 7.8;
   const pts = imp ? score(T, imp.x, imp.y, hole) : null;
-  const ev = app.match ? EVENTS.find((e) => e.id === app.match.eventId) : null;
   if (app.match && !app.match.paused) startTimer();
 
   const extra = (ppm) => {
@@ -101,9 +119,12 @@ export function renderTar() {
     if (imp) k.push(h('circle', { cx: String(imp.x), cy: String(-imp.y), r: String(7 / ppm), fill: 'var(--amber)', stroke: 'var(--paper)', 'stroke-width': String(2 / ppm) }));
     return k;
   };
-  const shots = app.tarShots;
-  const total = totalScore(T, shots, hole);
+  const shots = ev ? pData.shots : app.tarShots;
+  const setShots = (s2) => { if (ev) pData.shots = s2; else app.tarShots = s2; };
+  const es = ev ? eventScore(ev, app.match.per, hole) : null;
+  const total = es ? es.total : totalScore(T, shots, hole);
   const saveSeries = () => {
+    if (ev) { saveEvent(); return; }
     if (shots.length < 1) { toast('Touchez les impacts sur la cible'); return; }
     const off = imp || aim;
     set((st) => M.replaceGun(st, M.addSession(M.activeGun(st), { dist: sh.dist, loadId: load.id, target: tar.target, coldFirst: false, met: metForCalc(st), wind: { speed: st.shot.windSpeed, hour: st.shot.windHour },
@@ -112,7 +133,38 @@ export function renderTar() {
     app.tarShots = [];
     openSheet('carnet-' + gun.id, () => carnetSheet(gun.id));
   };
+  // Épreuve : les impacts comptés sur papier vont au carnet (une séance par cible) ; tous les coups tirés vont aux compteurs.
+  function saveEvent() {
+    const off = imp || aim, byT = {};
+    let fired = 0;
+    ev.phases.forEach((p, i) => {
+      const d = app.match.per[i]; if (!d) return;
+      const code = phaseTarget(ev, i);
+      fired += code === 'GONG' ? (d.gongs.some(Boolean) || i <= pIdx ? p[2] : 0) : d.shots.length;
+      if (code !== 'GONG' && phaseScored(ev, i)) (byT[code] = byT[code] || []).push(...d.shots);
+    });
+    const papers = Object.entries(byT).filter(([, v]) => v.length);
+    if (!fired) { toast('Rien à enregistrer pour l’instant'); return; }
+    set((st) => {
+      let g = M.activeGun(st), counted = 0;
+      for (const [code, list] of papers) {
+        g = M.addSession(g, { dist: sh.dist, loadId: load.id, target: code, coldFirst: false, met: metForCalc(st), wind: { speed: st.shot.windSpeed, hour: st.shot.windHour },
+          cran: ci ? ci.used : null, event: ev.id, aim: tar.aim, offset: off, shots: list.map((p) => ({ x: p.x - off.x, y: p.y - off.y })) });
+        counted += list.length;
+      }
+      if (fired > counted) g = M.addShots(g, fired - counted, 'épreuve ' + ev.id);
+      return M.replaceGun(st, g);
+    });
+    toast('Épreuve ' + ev.id + ' : ' + es.total + ' / ' + es.max + ' points · +' + fired + ' coups aux compteurs');
+    stopTimer(); app.match = null;
+    openSheet('carnet-' + gun.id, () => carnetSheet(gun.id));
+  }
 
+  const gongCard = pCode === 'GONG' ? h('section', { class: 'card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
+    h('span', { class: 'label' }, 'Gongs · touchez ceux qui sont tombés'),
+    h('div', { class: 'gongs' }, pData.gongs.map((on, k) => h('button', { class: 'gong', 'aria-pressed': String(on), 'aria-label': 'Gong ' + (k + 1) + (on ? ' tombé' : ' debout'),
+      onClick: () => { pData.gongs[k] = !on; buzz(); ui({}); } }, on ? '5' : String(k + 1)))),
+    h('span', { class: 'muted', style: { fontSize: '12px' } }, pData.gongs.filter(Boolean).length + ' gong(s) tombé(s) · ' + pData.gongs.filter(Boolean).length * 5 + ' points sur 25 pour cette série')) : null;
   const i = ci ? ci.list.indexOf(ci.used) : -1;
   const setShot = (o) => { buzz(); set((x) => ({ ...x, shot: { ...x.shot, ...o } })); };
   let line1 = 'Distance hors de portée pour cette munition.', line2 = '';
@@ -124,7 +176,7 @@ export function renderTar() {
   return h('main', { class: 'tar' },
     tipCard(['tar']),
     h('section', { class: 'card' },
-      h('div', { class: 'chips', role: 'group', 'aria-label': 'Cible' }, TAR_TARGETS.map((k) => h('button', { class: 'chip', 'aria-pressed': String(tar.target === k), onClick: () => { app.tarShots = []; tarSet({ target: k }); } }, TARGETS[k].name))),
+      h('div', { class: 'chips', role: 'group', 'aria-label': 'Cible' }, (poing ? POING_TARGETS : TAR_TARGETS).map((k) => h('button', { class: 'chip', 'aria-pressed': String(tgtKey === k), disabled: ev ? true : null, onClick: () => { app.tarShots = []; tarSet({ target: k }); } }, TARGETS[k].name))),
       h('div', { class: 'grid2', style: { marginTop: '8px' } },
         h('button', { class: 'btn small', 'aria-pressed': String(tar.aim === 'centre'), onClick: () => tarSet({ aim: 'centre' }) }, 'Plein centre'),
         h('button', { class: 'btn small', 'aria-pressed': String(tar.aim === '6h'), onClick: () => tarSet({ aim: '6h' }) }, 'Visée à 6 h')),
@@ -136,20 +188,21 @@ export function renderTar() {
         h('button', { class: 'step', 'aria-label': 'Cran précédent', disabled: i <= 0 ? true : null, onClick: () => setShot({ cran: ci.list[i - 1] }) }, '−'),
         h('button', { class: 'step', 'aria-pressed': String(!sh.cran), onClick: () => setShot({ cran: null }) }, 'Auto'),
         h('button', { class: 'step', 'aria-label': 'Cran suivant', disabled: i >= ci.list.length - 1 ? true : null, onClick: () => setShot({ cran: ci.list[i + 1] }) }, '+')) : null),
-    impactPad(T, { shots, sel: app.tarSel, label: 'Cible : touchez et glissez pour compter un impact', svg: { st: null, holeMm: hole, extra },
-      onChange: (s2, sel) => { if (s2.length > shots.length) buzz(); app.tarShots = s2; app.tarSel = sel; ui({}); } }),
-    selectionBar(shots, app.tarSel, () => { app.tarShots = shots.filter((_, k) => k !== app.tarSel); app.tarSel = null; ui({}); }),
-    h('div', { class: 'card', style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+    gongCard || impactPad(T, { shots, sel: app.tarSel, label: 'Cible : touchez et glissez pour compter un impact', svg: { st: null, holeMm: hole, extra },
+      onChange: (s2, sel) => { if (s2.length > shots.length) buzz(); setShots(s2); app.tarSel = sel; ui({}); } }),
+    gongCard ? null : selectionBar(shots, app.tarSel, () => { setShots(shots.filter((_, k) => k !== app.tarSel)); app.tarSel = null; ui({}); }),
+    gongCard ? null : h('div', { class: 'card', style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
       h('b', null, line1),
       line2 ? h('span', { class: 'muted', style: { fontSize: '13px' } }, line2) : null,
       tar.aim === '6h' ? h('span', { class: 'muted', style: { fontSize: '13px' } }, 'Visée à 6 h : le guidon effleure le bas du visuel noir, ' + num(T.black / 20, 0) + ' cm sous le centre. Pour toucher le centre, la balle doit monter d’autant.') : null,
       h('span', { class: 'muted', style: { fontSize: '12px' } }, T.name + ' : visuel noir ' + T.black + ' mm (zones ' + T.blackFrom + ' à 10)' + (T.cordon ? ', cordon ' + num(T.cordon, 1).replace(',0', '') + ' mm' : '') + (T.blackConfirmed ? '' : ', cote à vérifier sur le règlement') + ' · règlement TAR 2025-2026.')),
     h('section', { class: 'card' },
-      h('div', { class: 'row' }, h('span', { class: 'label grow' }, ev ? 'Points de l’épreuve' : 'Série'), h('b', { class: 'mono', style: { fontSize: '20px' } }, total + ' pts'), h('span', { class: 'muted', style: { fontSize: '13px' } }, ' · ' + shots.length + ' impact' + (shots.length > 1 ? 's' : ''))),
-      h('div', { class: 'muted', style: { fontSize: '12px', margin: '4px 0 8px' } }, shots.length ? 'Derniers : ' + shots.slice(-10).map((p) => score(T, p.x, p.y, hole)).join(' · ') : 'Touchez le centre de chaque trou sur la cible : Kronos compte les points (ligne touchée = zone supérieure).'),
+      h('div', { class: 'row' }, h('span', { class: 'label grow' }, ev ? 'Points de l’épreuve' : 'Série'), h('b', { class: 'mono', style: { fontSize: '20px' } }, total + (es ? ' / ' + es.max : ' pts')), ev ? null : h('span', { class: 'muted', style: { fontSize: '13px' } }, ' · ' + shots.length + ' impact' + (shots.length > 1 ? 's' : ''))),
+      es ? h('div', { style: { margin: '6px 0' } }, es.rows.map((r) => h('div', { class: 'kv' }, h('span', null, r.k), h('span', { class: 'mono' }, r.pts + ' / ' + r.max)))) : null,
+      gongCard ? null : h('div', { class: 'muted', style: { fontSize: '12px', margin: '4px 0 8px' } }, shots.length ? (ev ? ev.phases[pIdx][0] + ' : ' : 'Derniers : ') + shots.slice(-10).map((p) => score(T, p.x, p.y, hole)).join(' · ') + (ev && !phaseScored(ev, pIdx) ? ' (essais, non comptés)' : '') : 'Touchez le centre de chaque trou sur la cible : Kronos compte les points (ligne touchée = zone supérieure).'),
       h('div', { class: 'grid3' },
-        h('button', { class: 'btn', onClick: () => { app.tarShots = shots.slice(0, -1); app.tarSel = null; ui({}); } }, 'Annuler'),
-        h('button', { class: 'btn', onClick: () => { app.tarShots = []; app.tarSel = null; ui({}); } }, 'Effacer'),
+        h('button', { class: 'btn', onClick: () => { if (gongCard) { const k = pData.gongs.lastIndexOf(true); if (k >= 0) pData.gongs[k] = false; } else setShots(shots.slice(0, -1)); app.tarSel = null; ui({}); } }, 'Annuler'),
+        h('button', { class: 'btn', onClick: () => { if (gongCard) pData.gongs = [false, false, false, false, false]; else setShots([]); app.tarSel = null; ui({}); } }, 'Effacer'),
         h('button', { class: 'btn primary', onClick: saveSeries }, 'Enregistrer'))),
-    matchCard(ev));
+    matchCard(ev, gun));
 }

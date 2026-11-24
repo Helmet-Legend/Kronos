@@ -5,7 +5,7 @@
 // bcEst: true = BC estimé (valeur typique pour ce type d'ogive), absent de la source.
 // Les calibres de chasse figurent ici pour le tir sportif : Kronos n'est pas une application de chasse.
 
-export const DISCIPLINES = { TAR: 'TAR', TLD: 'TLD', CC: 'Calibres de chasse' };
+export const DISCIPLINES = { TAR: 'TAR', TLD: 'TLD', POING: 'Arme de poing', CC: 'Calibres de chasse' };
 
 const T = 'Tableau comparatif TAR & TLD (novembre 2026)';
 const C = 'Tableau comparatif des calibres courants (novembre 2026)';
@@ -48,6 +48,10 @@ export const AMMO = [
   { id: 'tld375ct', brand: 'Cutting Edge', name: '377 gr MTAC', cal: '.375 CheyTac', grains: 377, dMm: 9.53, g1: 0.874, g7: 0.447, v0: 910, disc: ['TLD'], verify: true, src: 'fiche technique 2025 (mesure Applied Ballistics), une seule source' },
   { id: 'tld50', brand: 'Hornady', name: '750 gr A-Max', cal: '.50 BMG', grains: 750, dMm: 12.95, g1: 1.050, g7: 0.510, v0: 860, disc: ['TLD'], verify: true, src: 'G1 1,050 publié par Hornady ; G7 non publié (0,510 à 0,524 selon les revendeurs)' },
 
+  // Arme de poing (TAR 830 à 832)
+  { id: 'p9sb', brand: 'Sellier & Bellot', name: '124 gr FMJ', cal: '9 mm Parabellum', grains: 124, dMm: 9.02, g1: 0.152, g7: 0, v0: 360, disc: ['POING'], src: 'Sellier & Bellot (G1) ; V0 annoncée pour un canon de 12 à 13 cm' },
+  { id: 'p45sb', brand: 'Sellier & Bellot', name: '230 gr FMJ', cal: '45 ACP', grains: 230, dMm: 11.48, g1: 0.213, g7: 0, v0: 260, disc: ['POING'], src: 'Sellier & Bellot (fiche FMJ 230 gr)' },
+
   // Calibres de chasse, pour le tir (BC G1 estimés : absents de la source)
   { id: 'cc222', brand: 'Standard', name: '55 gr', cal: '.222 Remington', grains: 55, dMm: 5.69, g1: 0.23, g7: 0, v0: 960, disc: ['CC'], verify: true, src: C, bcEst: true },
   { id: 'cc243', brand: 'Standard', name: '100 gr', cal: '.243 Winchester', grains: 100, dMm: 6.17, g1: 0.38, g7: 0, v0: 900, disc: ['CC'], verify: true, src: C, bcEst: true },
@@ -62,6 +66,15 @@ export const AMMO = [
   { id: 'cc93x62', brand: 'Standard', name: '285 gr', cal: '9,3x62', grains: 285, dMm: 9.30, g1: 0.35, g7: 0, v0: 725, disc: ['CC'], verify: true, src: C, bcEst: true },
   { id: 'cc93x74', brand: 'Standard', name: '285 gr', cal: '9,3x74 R', grains: 285, dMm: 9.30, g1: 0.35, g7: 0, v0: 695, disc: ['CC'], verify: true, src: C, bcEst: true },
   { id: 'cc338wm', brand: 'Standard', name: '225 gr', cal: '.338 Win Mag', grains: 225, dMm: 8.58, g1: 0.40, g7: 0, v0: 850, disc: ['CC'], verify: true, src: C, bcEst: true }
+];
+
+/**
+ * Armes de poing préremplies (fiches du fabricant ; le pas de rayure et la hauteur de visée sont à vérifier).
+ * twist en mm par tour, triggerKg = poids de détente d'origine.
+ */
+export const HANDGUNS = [
+  { id: 'glock17', name: 'Glock 17', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 114, twist: 250, triggerKg: 2.65, sightH: 0.016, cat: 'recente', src: 'Glock : canon 114 mm, détente 26 à 28 N selon la génération ; pas et hauteur de visée à vérifier' },
+  { id: 'glock30s', name: 'Glock 30S', cal: '45 ACP', type: 'pistolet', barrelMm: 96, twist: 400, triggerKg: 2.85, sightH: 0.016, cat: 'recente', src: 'Glock : canon 96 mm, détente 28 N ; pas et hauteur de visée à vérifier' }
 ];
 
 export const SIGHTS = [

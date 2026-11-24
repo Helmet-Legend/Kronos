@@ -11,6 +11,7 @@ import { hausseCard } from './hausse.js';
 import { chronoSheet } from './chrono.js';
 import { ladderSheet } from './ladder.js';
 import { tipCard } from './aide.js';
+import { checkPoing } from '../engine/poing.js';
 
 const TWIST = { R: 'à droite', L: 'à gauche', '?': 'sens inconnu' };
 
@@ -53,13 +54,15 @@ function gunDetail(g) {
     h('section', { class: 'card' },
       h('div', { class: 'row' }, h('span', { class: 'label grow' }, 'Arme et visée'), h('button', { class: 'btn small', onClick: () => openSheet('gun-' + g.id, () => gunSheet(g.id)) }, 'Modifier')),
       kv('Canon', int(g.barrelMm) + ' mm'),
+      g.type === 'poing' ? kv('Type', (g.hand && g.hand.type === 'revolver' ? 'revolver' : 'pistolet') + ' · détente ' + (g.hand && g.hand.triggerKg ? num(g.hand.triggerKg, 2) + ' kg' : '?')) : null,
       kv('Pas de rayure', int(g.twist) + ' mm · ' + TWIST[g.twistDir]),
       kv('Visée', sightTxt),
       kv('Hauteur de visée', int(g.sightH * 1000) + ' mm'),
       g.sight.kind === 'iron' && g.sight.tangent ? kv('Hausse', 'graduée de ' + g.sight.tangent.min + ' à ' + g.sight.tangent.max + ' m') : kv('Zéro', g.zero + ' m'),
       kv('Dispersion arme + tireur', num(g.dispersionMoa ?? 1.5, 1) + ' MOA')),
 
-    g.sight.kind === 'iron' && g.sight.tangent ? hausseCard(g) : null,
+    g.type === 'poing' ? poingCard(g) : null,
+    g.sight.kind === 'iron' && g.sight.tangent && g.type !== 'poing' ? hausseCard(g) : null,
 
     h('section', { class: 'card' },
       h('div', { class: 'row' }, h('span', { class: 'label grow' }, 'Munitions')),
@@ -92,6 +95,20 @@ function gunDetail(g) {
         c.log.some((e) => e.k === 'tir') ? h('button', { class: 'btn small ghost block', onClick: () => confirm({ title: 'Annuler la dernière saisie ?', text: 'Pour corriger une erreur de frappe. La ligne reste barrée dans l’historique.', ok: 'Annuler la saisie', onOk: () => set((st) => M.replaceGun(st, M.undoLast(st.guns.find((y) => y.id === g.id)))) }) }, 'Annuler la dernière saisie') : null) : null),
 
     s.guns.length > 1 ? h('button', { class: 'btn danger block', onClick: () => confirm({ title: 'Supprimer ' + g.name + ' ?', text: 'L’arme, ses munitions et son compteur (' + int(c.total) + ' coups) seront supprimés. Exportez une sauvegarde avant si besoin.', ok: 'Supprimer', danger: true, onOk: () => { app.armeId = null; set((st) => M.removeGun(st, g.id)); toast('Arme supprimée'); } }) }, 'Supprimer cette arme') : null);
+}
+
+/** Contrôle du matériel pour le TAR à l'arme de poing (annexe A-830). */
+function poingCard(g) {
+  const r = checkPoing(g), hd = g.hand || {};
+  const mark = (ok) => h('span', { class: 'tick ' + (ok === true ? 'ok' : ok === false ? 'ko' : 'na'), 'aria-hidden': 'true' }, ok === true ? '✓' : ok === false ? '✕' : '?');
+  return h('section', { class: 'card' },
+    h('div', { class: 'row' }, h('span', { class: 'label grow' }, 'Contrôle TAR · arme de poing'),
+      h('span', { style: { fontWeight: '700', fontSize: '13px', color: r.ok ? 'var(--cyan)' : 'var(--red)' } }, r.ok ? 'admise en ' + r.events.join(' et ') : 'non admise')),
+    r.checks.map((c) => h('div', { class: 'row', style: { padding: '8px 0', borderBottom: '1px solid var(--border)' } },
+      mark(c.ok), h('span', { class: 'grow' }, h('b', { style: { fontSize: '14px' } }, c.k), h('small', { class: 'muted', style: { display: 'block', fontSize: '12px' } }, c.rule)),
+      h('span', { class: 'mono', style: { fontSize: '13px', fontWeight: '700' } }, c.v))),
+    r.interdits.length ? h('p', { class: 'muted', style: { fontSize: '12px', margin: '8px 0 0' } }, 'Interdit : ' + r.interdits.join(', ') + '.') : null,
+    h('p', { class: 'muted', style: { fontSize: '12px', margin: '8px 0 0', lineHeight: '1.45' } }, (hd.type === 'revolver' ? 'Revolver' : 'Pistolet') + ' · ' + (hd.cat === 'authentique' ? 'arme authentique (annexe A-832)' : 'arme récente') + '. Contrôle indicatif d’après le règlement TAR 2025-2026 : le contrôle au stand fait foi.'));
 }
 
 function carnetCard(g, l) {

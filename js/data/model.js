@@ -19,6 +19,7 @@ export function newGun(o = {}) {
     counter: { total: 0, since: 0, log: [] },
     sessions: [],
     dispersionMoa: 1.5,
+    type: 'epaule',
     ...o
   };
 }
@@ -32,9 +33,9 @@ export function defaultState() {
     settings: { theme: 'dark', tableFrom: 100, tableTo: 1000, tableStep: 50, wakeLock: true, lastBackupIso: null, changesSinceBackup: 0, backupReminder: true, onboardingDone: false, tipsEnabled: true, seenTips: [] },
     guns: [
       { id: 'arme_tld', name: 'Carabine .308', cal: '.308 Winchester', barrelMm: 610, twist: 279, twistDir: 'R', sight: { kind: 'scope', unit: 'MRAD', click: 0.1 }, sightH: 0.045, zero: 100,
-        loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 1 },
+        loads: [f175, h178], loadId: f175.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 1, type: 'epaule' },
       { id: 'arme_k98', name: 'Mauser K98k', cal: '7,92x57 IS', barrelMm: 600, twist: 240, twistDir: 'R', sight: { kind: 'iron', tangent: { min: 100, max: 2000, step: 100, crans: {} } }, sightH: 0.028, zero: 100,
-        loads: [ss], loadId: ss.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 3 }
+        loads: [ss], loadId: ss.id, counter: { total: 0, since: 0, log: [] }, sessions: [], dispersionMoa: 3, type: 'epaule' }
     ],
     gunId: 'arme_tld',
     shot: { dist: 300, windSpeed: 2, windHour: 3, angleDeg: 0 },
@@ -241,6 +242,7 @@ export function checkGun(g) {
   if (!g.name || !String(g.name).trim()) e.push('Nom manquant');
   if (!num(g.sightH, 0.005, 0.2)) e.push('Hauteur de visée entre 5 et 200 mm');
   if (!num(g.zero, 10, 1000)) e.push('Distance de zéro entre 10 et 1000 m');
+  if (g.type === 'poing' && g.hand && g.hand.triggerKg !== undefined && g.hand.triggerKg !== null && !num(g.hand.triggerKg, 0.1, 10)) e.push('Poids de détente entre 0,1 et 10 kg');
   if (!num(g.twist, 100, 1000)) e.push('Pas de rayure entre 100 et 1000 mm');
   if (g.sight.kind === 'scope' && !num(g.sight.click, 0.01, 1)) e.push('Valeur de clic entre 0,01 et 1');
   const t = g.sight.kind === 'iron' && g.sight.tangent;
@@ -272,6 +274,7 @@ export function migrate(s) {
   for (const g of s.guns || []) {
     if (!Array.isArray(g.sessions)) g.sessions = [];
     if (typeof g.dispersionMoa !== 'number') g.dispersionMoa = 1.5;
+    if (g.type !== 'poing') g.type = 'epaule';
     for (const l of g.loads || []) { if (!Array.isArray(l.trueLog)) l.trueLog = []; if (!Array.isArray(l.chronoLog)) l.chronoLog = []; }
   }
   s.schema = SCHEMA;
