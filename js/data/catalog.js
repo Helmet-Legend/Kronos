@@ -51,6 +51,13 @@ export const AMMO = [
   // Arme de poing (TAR 830 à 832)
   { id: 'p9sb', brand: 'Sellier & Bellot', name: '124 gr FMJ', cal: '9 mm Parabellum', grains: 124, dMm: 9.02, g1: 0.152, g7: 0, v0: 360, disc: ['POING'], src: 'Sellier & Bellot (G1) ; V0 annoncée pour un canon de 12 à 13 cm' },
   { id: 'p45sb', brand: 'Sellier & Bellot', name: '230 gr FMJ', cal: '45 ACP', grains: 230, dMm: 11.48, g1: 0.213, g7: 0, v0: 260, disc: ['POING'], src: 'Sellier & Bellot (fiche FMJ 230 gr)' },
+  { id: 'p9115', brand: 'Sellier & Bellot', name: '115 gr FMJ', cal: '9 mm Parabellum', grains: 115, dMm: 9.02, g1: 0.13, g7: 0, v0: 380, disc: ['POING'], verify: true, bcEst: true, src: 'valeurs usuelles (V0 pour un canon de 12 cm environ), à vérifier' },
+  { id: 'p38wc', brand: 'Générique', name: '148 gr wadcutter', cal: '38 Spécial', grains: 148, dMm: 9.07, g1: 0.055, g7: 0, v0: 215, disc: ['POING'], verify: true, bcEst: true, src: 'valeurs usuelles (canon de 15 cm), à vérifier ; balle de cible plate' },
+  { id: 'p38lrn', brand: 'Générique', name: '158 gr LRN', cal: '38 Spécial', grains: 158, dMm: 9.07, g1: 0.146, g7: 0, v0: 240, disc: ['POING'], verify: true, bcEst: true, src: 'valeurs usuelles (canon de 15 cm), à vérifier' },
+  { id: 'p45230', brand: 'Générique', name: '200 gr SWC (cible)', cal: '45 ACP', grains: 200, dMm: 11.48, g1: 0.15, g7: 0, v0: 240, disc: ['POING'], verify: true, bcEst: true, src: 'valeurs usuelles de rechargement de cible, à vérifier' },
+  { id: 'p762tok', brand: 'Sellier & Bellot', name: '85 gr FMJ', cal: '7,62 Tokarev', grains: 85, dMm: 7.85, g1: 0.12, g7: 0, v0: 450, disc: ['POING'], verify: true, bcEst: true, src: 'valeurs usuelles, à vérifier' },
+  { id: 'p9mak', brand: 'Sellier & Bellot', name: '95 gr FMJ', cal: '9 mm Makarov', grains: 95, dMm: 9.27, g1: 0.09, g7: 0, v0: 300, disc: ['POING'], verify: true, bcEst: true, src: 'valeurs usuelles, à vérifier' },
+  { id: 'p762nag', brand: 'Générique', name: '98 gr FMJ', cal: '7,62 Nagant', grains: 98, dMm: 7.82, g1: 0.1, g7: 0, v0: 250, disc: ['POING'], verify: true, bcEst: true, src: 'valeurs usuelles, à vérifier' },
 
   // Calibres de chasse, pour le tir (BC G1 estimés : absents de la source)
   { id: 'cc222', brand: 'Standard', name: '55 gr', cal: '.222 Remington', grains: 55, dMm: 5.69, g1: 0.23, g7: 0, v0: 960, disc: ['CC'], verify: true, src: C, bcEst: true },
@@ -72,9 +79,58 @@ export const AMMO = [
  * Armes de poing préremplies (fiches du fabricant ; le pas de rayure et la hauteur de visée sont à vérifier).
  * twist en mm par tour, triggerKg = poids de détente d'origine.
  */
+// Modèles d'armes de poing. Seuls les Glock sont repris de la fiche du fabricant ; le reste vient des valeurs usuelles
+// du modèle (verify: true) : canon, pas et sens à vérifier sur l'arme, poids de détente à mesurer (null).
+// cat : 'recente' (830, 831) ou 'authentique' (annexe A-832 : 832, 831). ammo38 : revolver 357 tiré en 38 Spécial.
+const PV = 'valeurs usuelles du modèle, à vérifier sur votre arme';
 export const HANDGUNS = [
-  { id: 'glock17', name: 'Glock 17', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 114, twist: 250, triggerKg: 2.65, sightH: 0.016, cat: 'recente', src: 'Glock : canon 114 mm, détente 26 à 28 N selon la génération ; pas et hauteur de visée à vérifier' },
-  { id: 'glock30s', name: 'Glock 30S', cal: '45 ACP', type: 'pistolet', barrelMm: 96, twist: 400, triggerKg: 2.85, sightH: 0.016, cat: 'recente', src: 'Glock : canon 96 mm, détente 28 N ; pas et hauteur de visée à vérifier' }
+  { id: 'glock17', name: 'Glock 17', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 114, twist: 250, twistDir: 'R', triggerKg: 2.65, sightH: 0.016, cat: 'recente', src: 'Glock : canon 114 mm, détente 26 à 28 N selon la génération ; pas et hauteur de visée à vérifier' },
+  { id: 'glock19', name: 'Glock 19', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 102, twist: 250, twistDir: 'R', triggerKg: 2.65, sightH: 0.016, cat: 'recente', src: 'Glock : canon 102 mm, détente 26 à 28 N ; pas et hauteur de visée à vérifier' },
+  { id: 'glock34', name: 'Glock 34', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 135, twist: 250, twistDir: 'R', triggerKg: 2.65, sightH: 0.016, cat: 'recente', src: 'Glock : canon 135 mm, trop long pour le TAR (13 cm au plus)' },
+  { id: 'glock21', name: 'Glock 21', cal: '45 ACP', type: 'pistolet', barrelMm: 117, twist: 400, twistDir: 'R', triggerKg: 2.5, sightH: 0.016, cat: 'recente', src: 'Glock : canon 117 mm ; pas, détente et hauteur de visée à vérifier' },
+  { id: 'glock30s', name: 'Glock 30S', cal: '45 ACP', type: 'pistolet', barrelMm: 96, twist: 400, twistDir: 'R', triggerKg: 2.85, sightH: 0.016, cat: 'recente', src: 'Glock : canon 96 mm, détente 28 N ; pas et hauteur de visée à vérifier' },
+  { id: 'cz75b', name: 'CZ 75 B', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 120, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.017, cat: 'recente', verify: true, src: PV },
+  { id: 'czshadow2', name: 'CZ Shadow 2', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 125, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.018, cat: 'recente', verify: true, src: PV + ' ; visée fibre d’origine interdite en TAR' },
+  { id: 'beretta92', name: 'Beretta 92 FS', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 125, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.017, cat: 'recente', verify: true, src: PV },
+  { id: 'p226', name: 'SIG Sauer P226', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 112, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.018, cat: 'recente', verify: true, src: PV },
+  { id: 'p320', name: 'SIG Sauer P320 Full Size', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 120, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.018, cat: 'recente', verify: true, src: PV },
+  { id: 'usp9', name: 'HK USP 9', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 108, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.017, cat: 'recente', verify: true, src: PV },
+  { id: 'pdp45', name: 'Walther PDP 4,5 pouces', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 114, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.017, cat: 'recente', verify: true, src: PV },
+  { id: 'mp9', name: 'Smith & Wesson M&P9 2.0', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 108, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.017, cat: 'recente', verify: true, src: PV },
+  { id: 'colt1911', name: 'Colt Government 1911', cal: '45 ACP', type: 'pistolet', barrelMm: 127, twist: 406, twistDir: 'L', triggerKg: null, sightH: 0.016, cat: 'recente', verify: true, src: PV },
+  { id: 'sw686', name: 'Smith & Wesson 686 6 pouces', cal: '357 Magnum', type: 'revolver', barrelMm: 152, twist: 476, twistDir: 'R', triggerKg: null, sightH: 0.020, cat: 'recente', ammo38: true, verify: true, src: PV + ' ; en TAR, tiré avec des munitions de 38 Spécial' },
+  { id: 'mr73', name: 'Manurhin MR 73 Sport 6 pouces', cal: '357 Magnum', type: 'revolver', barrelMm: 152, twist: 476, twistDir: 'R', triggerKg: null, sightH: 0.020, cat: 'recente', ammo38: true, verify: true, src: PV + ' ; en TAR, tiré avec des munitions de 38 Spécial' },
+  { id: 'm1911a1', name: 'Colt M1911A1 (réglementaire)', cal: '45 ACP', type: 'pistolet', barrelMm: 127, twist: 406, twistDir: 'L', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV },
+  { id: 'mas50', name: 'MAS 1950', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 112, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV },
+  { id: 'pa15', name: 'MAB PA 15', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 114, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV },
+  { id: 'hp35', name: 'Browning HP 35', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 118, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV },
+  { id: 'p38', name: 'Walther P38', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 125, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV },
+  { id: 'p08', name: 'Luger P08', cal: '9 mm Parabellum', type: 'pistolet', barrelMm: 100, twist: 250, twistDir: 'R', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV },
+  { id: 'tt33', name: 'Tokarev TT-33', cal: '7,62 Tokarev', type: 'pistolet', barrelMm: 116, twist: 240, twistDir: 'R', triggerKg: null, sightH: 0.015, cat: 'authentique', verify: true, src: PV },
+  { id: 'pm', name: 'Makarov PM', cal: '9 mm Makarov', type: 'pistolet', barrelMm: 93, twist: 240, twistDir: 'R', triggerKg: null, sightH: 0.014, cat: 'authentique', verify: true, src: PV },
+  { id: 'nagant95', name: 'Nagant 1895', cal: '7,62 Nagant', type: 'revolver', barrelMm: 114, twist: 240, twistDir: 'R', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV },
+  { id: 'lebel92', name: 'Revolver 1892 (Lebel)', cal: '8 mm 1892', type: 'revolver', barrelMm: 117, twist: 240, twistDir: '?', triggerKg: null, sightH: 0.016, cat: 'authentique', verify: true, src: PV + ' ; pas et sens non trouvés' },
+  { id: 'sw1917', name: 'Smith & Wesson M1917', cal: '45 ACP', type: 'revolver', barrelMm: 140, twist: 406, twistDir: 'R', triggerKg: null, sightH: 0.017, cat: 'authentique', verify: true, src: PV },
+  { id: 'webley6', name: 'Webley Mk VI', cal: '455 Webley', type: 'revolver', barrelMm: 152, twist: 508, twistDir: '?', triggerKg: null, sightH: 0.017, cat: 'authentique', verify: true, src: PV + ' ; pas et sens non trouvés' }
+];
+
+// Modèles d'armes d'épaule (TAR et armes historiques) : calibre, canon, pas et sens usuels, à vérifier sur l'arme.
+// tangent : graduations de la hausse en mètres quand elles sont connues ; les hausses en yards (armes anglo-saxonnes) ne sont pas préremplies.
+const RV = 'valeurs usuelles du modèle, à vérifier sur votre arme';
+export const RIFLES = [
+  { id: 'k98k', name: 'Mauser K98k', cal: '7,92x57 IS', barrelMm: 600, twist: 240, twistDir: 'R', sightH: 0.028, tangent: { min: 100, max: 2000, step: 100 }, verify: true, src: RV },
+  { id: 'mas36', name: 'MAS 36', cal: '7,5x54 MAS', barrelMm: 575, twist: 270, twistDir: 'L', sightH: 0.030, tangent: { min: 200, max: 1200, step: 100 }, verify: true, src: RV },
+  { id: 'mas4956', name: 'MAS 49/56', cal: '7,5x54 MAS', barrelMm: 521, twist: 270, twistDir: 'L', sightH: 0.030, tangent: { min: 200, max: 1200, step: 100 }, verify: true, src: RV },
+  { id: 'garand', name: 'M1 Garand', cal: '.30-06 Springfield', barrelMm: 610, twist: 254, twistDir: 'R', sightH: 0.030, verify: true, src: RV + ' ; hausse en yards' },
+  { id: 'm1903', name: 'Springfield M1903', cal: '.30-06 Springfield', barrelMm: 610, twist: 254, twistDir: 'R', sightH: 0.030, verify: true, src: RV + ' ; hausse en yards' },
+  { id: 'm1carbine', name: 'Carabine US M1', cal: '.30 M1 Carbine', barrelMm: 458, twist: 508, twistDir: 'R', sightH: 0.030, verify: true, src: RV + ' ; hausse en yards' },
+  { id: 'no4', name: 'Lee-Enfield No4 Mk1', cal: '.303 British', barrelMm: 640, twist: 254, twistDir: 'L', sightH: 0.030, verify: true, src: RV + ' ; hausse en yards' },
+  { id: 'smle', name: 'Lee-Enfield SMLE No1 Mk3', cal: '.303 British', barrelMm: 640, twist: 254, twistDir: 'L', sightH: 0.028, verify: true, src: RV + ' ; hausse en yards' },
+  { id: 'mosin', name: 'Mosin-Nagant 91/30', cal: '7,62x54R', barrelMm: 730, twist: 240, twistDir: 'R', sightH: 0.028, tangent: { min: 100, max: 2000, step: 100 }, verify: true, src: RV },
+  { id: 'k31', name: 'Schmidt-Rubin K31', cal: '7,5x55 Suisse', barrelMm: 652, twist: 270, twistDir: 'R', sightH: 0.028, tangent: { min: 100, max: 1500, step: 100 }, verify: true, src: RV },
+  { id: 'm96', name: 'Mauser suédois M96', cal: '6,5x55 SE', barrelMm: 739, twist: 200, twistDir: 'R', sightH: 0.028, verify: true, src: RV },
+  { id: 'sks', name: 'SKS', cal: '7,62x39', barrelMm: 520, twist: 240, twistDir: 'R', sightH: 0.028, tangent: { min: 100, max: 1000, step: 100 }, verify: true, src: RV },
+  { id: 'ar15', name: 'AR-15 canon 20 pouces', cal: '.223 Remington', barrelMm: 508, twist: 178, twistDir: 'R', sightH: 0.065, verify: true, src: RV + ' ; pas de 178 ou 229 mm selon le canon' }
 ];
 
 export const SIGHTS = [
