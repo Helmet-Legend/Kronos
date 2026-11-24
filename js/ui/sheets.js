@@ -30,7 +30,8 @@ function modelPicker(label, groups, onPick) {
   const sel = h('select', { id, onChange: () => { const p = all.find((x) => x.id === sel.value); if (p) onPick(p); } },
     h('option', { value: '' }, 'Choisir un modèle…'),
     groups.map(([g, list]) => h('optgroup', { label: g }, list.map((p) => h('option', { value: p.id }, p.name + ' · ' + p.cal)))));
-  return { el: h('div', { class: 'field' }, h('label', { for: id }, label), sel), sel };
+  return { el: h('div', { class: 'field' }, h('label', { for: id }, label), sel,
+    h('small', { class: 'muted', style: { fontSize: '12px' } }, 'Facultatif. Arme absente de la liste : laissez « Choisir un modèle… » et remplissez les champs ci-dessous.')), sel };
 }
 
 function select(label, value, options) {
