@@ -72,6 +72,10 @@ js/ui/                                    écrans et panneaux
 tests/                                    tests automatiques
 ```
 
+## Google Play
+
+Le dossier `store/` contient la fiche du Play Store, les réponses aux formulaires de Google, les captures et l'image de présentation, ainsi que la marche à suivre (PWABuilder, test fermé). Politique de confidentialité : `confidentialite.html`.
+
 ## Mentions
 
 Météo : [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), gratuit pour un usage non commercial. Une version commerciale de Kronos demandera un abonnement Open-Meteo.

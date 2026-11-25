@@ -123,7 +123,8 @@ export function renderReglages() {
     h('section', { class: 'card' },
       h('div', { class: 'label', style: { marginBottom: '6px' } }, 'À propos'),
       h('p', { style: { fontSize: '13px', margin: '0', lineHeight: '1.5' } }, 'Kronos ' + app.version + ' · fonctionne hors ligne une fois installé (menu du navigateur → « Ajouter à l’écran d’accueil »).'),
-      h('p', { class: 'muted', style: { fontSize: '12px', margin: '6px 0 0' } }, 'Météo : Open-Meteo.com (CC BY 4.0), usage non commercial.')),
+      h('p', { class: 'muted', style: { fontSize: '12px', margin: '6px 0 0' } }, 'Météo : Open-Meteo.com (CC BY 4.0), usage non commercial.'),
+      h('p', { style: { fontSize: '13px', margin: '8px 0 0' } }, h('a', { href: 'confidentialite.html', target: '_blank', rel: 'noopener', style: { color: 'var(--cyan)' } }, 'Politique de confidentialité'))),
 
     h('button', { class: 'btn danger block', onClick: () => confirm({ title: 'Tout effacer ?', text: 'Armes, munitions, compteurs et réglages seront remplacés par les exemples de départ. Exportez une sauvegarde avant.', ok: 'Tout effacer', danger: true, onOk: () => { app.armeId = null; set(() => M.defaultState()); toast('Données réinitialisées'); } }) }, 'Réinitialiser l’application'));
 }

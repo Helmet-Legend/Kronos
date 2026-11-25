@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05080F">
+<title>Kronos · confidentialité</title>
+<link rel="icon" href="icons/favicon-64.png" type="image/png">
+<style>
+:root { --bg: #05080F; --panel: #0D1422; --border: #1E2A3D; --fg: #E8EEF7; --muted: #8A97AB; --amber: #FF8A1F; --cyan: #38BDF8; color-scheme: dark; }
+@media (prefers-color-scheme: light) { :root { --bg: #F4F6FA; --panel: #FFFFFF; --border: #D5DCE6; --fg: #0B1220; --muted: #5A6678; --amber: #B45309; --cyan: #0369A1; color-scheme: light; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); }
+header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+header img { width: 56px; height: 56px; border-radius: 14px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 0; }
+h2 { font-size: 18px; margin: 32px 0 8px; color: var(--amber); }
+p, li { max-width: 65ch; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin: 16px 0; }
+a { color: var(--cyan); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 6px; border-top: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; }
+.wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="icons/icon-192.png" alt=""><div><h1>Politique de confidentialité</h1><div class="muted">Kronos, calculateur balistique pour le tir sportif · mise à jour du 25 novembre 2026</div></div></header>
+
+  <div class="card"><strong>En bref :</strong> Kronos n’a ni compte, ni serveur, ni publicité, ni mesure d’audience. Tout ce que vous saisissez reste sur votre téléphone. La seule donnée qui sort de l’appareil est votre position approximative, quand vous demandez la météo automatique.</div>
+
+  <h2>Qui édite Kronos</h2>
+  <p>Kronos est développé par un particulier, à titre non commercial. Le code source est public : <a href="https://github.com/Helmet-Legend/Kronos">github.com/Helmet-Legend/Kronos</a>. Pour toute question sur vos données, écrivez à l’adresse de contact indiquée sur la fiche Google Play de Kronos, ou ouvrez un ticket sur la page <a href="https://github.com/Helmet-Legend/Kronos/issues">Issues</a> du projet.</p>
+
+  <h2>Les données enregistrées sur votre téléphone</h2>
+  <p>Vos armes, munitions, réglages, compteurs de coups, séances du carnet, mesures au chronographe et essais de développement de charge sont enregistrés dans le stockage de l’application sur votre appareil (IndexedDB du navigateur). Ils ne sont envoyés à personne, ni à l’éditeur de Kronos, ni à Google, ni à un autre service.</p>
+  <p>Vous pouvez tout effacer à tout moment : Réglages, puis « Réinitialiser l’application », ou en désinstallant Kronos.</p>
+
+  <h2>Ce qui sort de l’appareil, et quand</h2>
+  <div class="wrap"><table>
+    <tr><th>Donnée</th><th>Quand</th><th>Destinataire et usage</th></tr>
+    <tr><td>Position approximative (latitude et longitude arrondies à 100 m environ)</td><td>Seulement quand vous touchez « Météo automatique », après votre accord à la demande de localisation du téléphone</td><td><a href="https://open-meteo.com/en/terms">Open-Meteo</a>, pour obtenir la température, la pression, l’humidité et le vent à cet endroit. Kronos ne garde pas la position : il ne conserve que la météo reçue.</td></tr>
+    <tr><td>Adresse IP et données techniques de connexion</td><td>Au téléchargement de l’application et de ses mises à jour, et lors d’une demande météo</td><td>GitHub (hébergeur de Kronos, voir sa <a href="https://docs.github.com/fr/site-policy/privacy-policies/github-general-privacy-statement">déclaration de confidentialité</a>) et Open-Meteo, comme pour toute page web. Kronos n’y ajoute aucun identifiant.</td></tr>
+  </table></div>
+  <p>Sans réseau, Kronos fonctionne entièrement : la météo se saisit à la main.</p>
+
+  <h2>Appareil photo et photos</h2>
+  <p>La photo d’une cible sert à placer les impacts. Elle est traitée sur le téléphone et n’est ni enregistrée ni envoyée : seules les positions des impacts sont gardées dans le carnet.</p>
+
+  <h2>Micro</h2>
+  <p>Kronos n’utilise pas le micro. Si une fonction en a besoin un jour (comptage des coups), elle sera facultative, coupée par défaut, et le son sera analysé sur le téléphone sans être enregistré ni envoyé ; cette page sera mise à jour avant.</p>
+
+  <h2>Sauvegardes</h2>
+  <p>Les sauvegardes sont des fichiers créés à votre demande (Réglages, « Exporter »). Vous choisissez où les mettre. Elles peuvent être chiffrées par un mot de passe (AES-GCM) ; Kronos ne connaît pas ce mot de passe et ne peut pas le retrouver.</p>
+
+  <h2>Ce que Kronos ne fait pas</h2>
+  <ul>
+    <li>Pas de compte, pas d’inscription, pas d’adresse e-mail demandée.</li>
+    <li>Pas de publicité, pas de mesure d’audience, pas de traceur ni de cookie publicitaire.</li>
+    <li>Pas de vente ni de partage de données.</li>
+    <li>Pas d’accès aux contacts, aux fichiers ou aux autres applications.</li>
+  </ul>
+
+  <h2>Vos droits</h2>
+  <p>Comme vos données ne quittent pas votre téléphone, vous les contrôlez directement : consultation, export, modification et suppression se font dans l’application. Pour les données traitées par GitHub ou Open-Meteo, adressez-vous à eux. Vous pouvez aussi saisir la CNIL (<a href="https://www.cnil.fr">cnil.fr</a>).</p>
+
+  <h2>Changements</h2>
+  <p>Toute modification de cette politique sera publiée sur cette page, avec sa date, avant d’entrer en vigueur.</p>
+
+  <p class="muted" style="margin-top:40px"><a href="./">Ouvrir Kronos</a></p>
+</main>
+</body>
+</html>
