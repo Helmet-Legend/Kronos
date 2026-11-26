@@ -1,8 +1,15 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "io.github.helmet_legend.kronos",
-        "sha256_cert_fingerprints": ["1F:06:67:81:88:72:9D:89:09:44:2B:CC:85:0B:04:B3:59:C3:93:60:57:5D:B6:64:FE:51:73:6A:9C:78:19:52"]
-      }
-    }]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.helmet_legend.kronos",
+      "sha256_cert_fingerprints": [
+        "1F:06:67:81:88:72:9D:89:09:44:2B:CC:85:0B:04:B3:59:C3:93:60:57:5D:B6:64:FE:51:73:6A:9C:78:19:52",
+        "1C:5E:1B:33:1C:A6:D0:DC:B1:23:E5:8A:A2:D8:AF:CF:13:37:C8:5A:CA:77:82:FC:80:FE:CC:DB:47:94:73:53"
+      ]
+    }
+  }
+]
